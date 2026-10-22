@@ -1,0 +1,261 @@
+/*
+ * Design System — Tokens (CSS custom properties)
+ * Fonte: engenharia reversa de screenshots (ver ../references/screenshot-analysis.md).
+ * Todos os tokens usam o prefixo --ds- para não colidir com o CSS existente do app.
+ *
+ * Confiança dos valores:
+ *   [obs] observado diretamente nos screenshots (valores HEX ainda são estimativas por amostragem visual)
+ *   [est] estimado (medida/valor aproximado, derivado da escala do dispositivo)
+ *   [inf] inferido (não aparece nos screenshots; decisão para completar o sistema)
+ *
+ * Tema padrão: escuro. Tema claro: <html data-theme="light"> (evidência: último screenshot).
+ */
+
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* ---------- Cor: fundos e superfícies [obs/est] ---------- */
+  --ds-color-bg: #0b0c0f;               /* fundo do app */
+  --ds-color-surface: #14161a;          /* cards, linhas de lista, inputs */
+  --ds-color-surface-raised: #1b1e23;   /* superfícies sobre surface, botões secundários, ícones em tile */
+  --ds-color-surface-sunken: #101215;   /* áreas rebaixadas (tiles de estatística dentro de card) */
+  --ds-color-overlay: rgb(0 0 0 / 0.6); /* [inf] scrim de modais/sheets */
+
+  /* ---------- Cor: texto [obs/est] ---------- */
+  --ds-color-text: #f5f6f7;
+  --ds-color-text-secondary: #a0a4ab;
+  --ds-color-text-tertiary: #6e727a;    /* eyebrows, legendas, tab inativa */
+  --ds-color-text-disabled: #4b4f56;    /* [inf] */
+  --ds-color-text-on-primary: #0b0c0f;  /* texto sobre o lima */
+  --ds-color-text-link: #ccff00;        /* "Forgot password?" */
+
+  /* ---------- Cor: bordas [obs/est] ---------- */
+  --ds-color-border: #25282e;           /* borda padrão de cards e linhas */
+  --ds-color-border-strong: #3a3e45;    /* inputs, botões secundários */
+  --ds-color-border-hover: #5a5f68;     /* [inf] borda de inputs/botões em hover */
+  --ds-shadow-glow-primary: 0 8px 24px rgb(204 255 0 / 0.28); /* [inf] brilho do CTA em hover */
+  --ds-shadow-glow-focus: 0 0 0 4px rgb(204 255 0 / 0.16);    /* [inf] halo de foco */
+  --ds-color-divider: #25282e;
+
+  /* ---------- Cor: marca / ação [obs/est] ---------- */
+  --ds-color-primary: #ccff00;          /* lima elétrico — ação principal (fundos/bordas) */
+  --ds-color-primary-hover: #d8ff3d;    /* [inf] */
+  --ds-color-primary-pressed: #b3e000;  /* [inf] */
+  --ds-color-primary-subtle: rgb(204 255 0 / 0.12);  /* fundo de seleção/banners */
+  --ds-color-primary-border: rgb(204 255 0 / 0.55);  /* [est] borda de chips/pills de status */
+  --ds-color-primary-fg: #ccff00;       /* texto/ícones accent sobre superfície */
+  --ds-color-focus-ring: #ccff00;       /* [inf] */
+
+  /* ---------- Cor: semânticas ---------- */
+  --ds-color-success: #34d399;          /* [obs] "Connected", macro Fat */
+  --ds-color-success-subtle: rgb(52 211 153 / 0.14);
+  --ds-color-warning: #ffa63d;          /* [obs] macro Carbs, estrelas #f5b50a */
+  --ds-color-warning-subtle: rgb(255 166 61 / 0.14);
+  --ds-color-danger: #ff6b6b;           /* [inf] não aparece nos screenshots */
+  --ds-color-danger-subtle: rgb(255 107 107 / 0.14);
+  --ds-color-info: #5aa8ff;             /* [inf] */
+  --ds-color-info-subtle: rgb(90 168 255 / 0.14);
+  --ds-color-rating: #f5b50a;           /* [obs] estrelas */
+
+  /* ---------- Cor: dados (macros) [obs] ---------- */
+  --ds-color-data-primary: #ccff00;     /* Protein */
+  --ds-color-data-secondary: #ffa63d;   /* Carbs */
+  --ds-color-data-tertiary: #34d399;    /* Fat */
+  --ds-color-chart-bar: #23262b;        /* barras inativas do gráfico semanal */
+  --ds-color-chart-bar-active: #ccff00;
+
+  /* ---------- Gradientes de tiles de feature [obs/est] ---------- */
+  --ds-gradient-tile-lime: linear-gradient(145deg, #3d4d08 0%, #1a1f0a 45%, #0e1008 100%);
+  --ds-gradient-tile-violet: linear-gradient(145deg, #2c2540 0%, #17141f 50%, #0e0d12 100%);
+  --ds-gradient-tile-blue: linear-gradient(145deg, #1a2a44 0%, #12161e 70%);
+  --ds-gradient-tile-amber: linear-gradient(145deg, #3a2410 0%, #17120d 70%);
+  --ds-gradient-tile-teal: linear-gradient(145deg, #123329 0%, #0f1613 70%);
+  --ds-gradient-tile-neutral: linear-gradient(145deg, #1d1f23 0%, #121316 70%);
+  --ds-gradient-fade-edge: linear-gradient(90deg, rgb(11 12 15 / 0) 0%, var(--ds-color-bg) 100%);
+
+  /* ---------- Camada de vitrine (showcase / marketing) [obs/est] ---------- */
+  --ds-showcase-bg: #f5f5f4;
+  --ds-showcase-header-bg: #1c1f22;
+  --ds-showcase-header-text: #ffffff;
+  --ds-showcase-text: #1a1a1a;
+  --ds-showcase-text-muted: #75787d;
+  --ds-showcase-line: #e3e3e1;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+
+  /* Tema claro: accent continua lima/verde. Texto e ícones escurecem para ler no branco. */
+  --ds-color-bg: #f3f5f2;
+  --ds-color-surface: #ffffff;
+  --ds-color-surface-raised: #ffffff;
+  --ds-color-surface-sunken: #e8ebe3;
+  --ds-color-overlay: rgb(11 12 15 / 0.4);
+
+  --ds-color-text: #0a0c10;
+  --ds-color-text-secondary: #3a414c;
+  --ds-color-text-tertiary: #545c68;
+  --ds-color-text-disabled: #8a929c;
+  --ds-color-text-on-primary: #0b0c0f;
+  --ds-color-text-link: #3d6b00;
+
+  --ds-color-border: #dfe3d8;
+  --ds-color-border-strong: #c5ccbb;
+  --ds-color-border-hover: #8b9480;
+  --ds-shadow-glow-primary: 0 8px 24px rgb(204 255 0 / 0.28);
+  --ds-shadow-glow-focus: 0 0 0 4px rgb(90 138 0 / 0.2);
+  --ds-color-divider: #dfe3d8;
+
+  --ds-color-primary: #ccff00;
+  --ds-color-primary-hover: #b8e600;
+  --ds-color-primary-pressed: #9fcc00;
+  --ds-color-primary-subtle: rgb(90 138 0 / 0.14);
+  --ds-color-primary-border: rgb(90 138 0 / 0.5);
+  --ds-color-primary-fg: #3d6b00;       /* verde escuro legível no branco (não use lima em texto) */
+  --ds-color-focus-ring: #4a7300;
+
+  --ds-color-success: #0f7a52;
+  --ds-color-success-subtle: rgb(15 122 82 / 0.12);
+  --ds-color-warning: #9a5a00;
+  --ds-color-warning-subtle: rgb(154 90 0 / 0.12);
+  --ds-color-danger: #c23430;
+  --ds-color-danger-subtle: rgb(194 52 48 / 0.1);
+  --ds-color-info: #3d6b00;
+  --ds-color-info-subtle: rgb(61 107 0 / 0.1);
+
+  --ds-color-data-primary: #4a7300;
+  --ds-color-data-secondary: #9a5a00;
+  --ds-color-data-tertiary: #0f7a52;
+  --ds-color-chart-bar: #e3e6dc;
+  --ds-color-chart-bar-active: #ccff00;
+
+  --ds-gradient-tile-lime: linear-gradient(145deg, #e8f2b8 0%, #f4f8e0 100%);
+  --ds-gradient-tile-violet: linear-gradient(145deg, #ece8fb 0%, #f6f4fd 100%);
+  --ds-gradient-tile-blue: linear-gradient(145deg, #dfeafd 0%, #f2f6fd 100%);
+  --ds-gradient-tile-amber: linear-gradient(145deg, #fbeedc 0%, #fdf6ec 100%);
+  --ds-gradient-tile-teal: linear-gradient(145deg, #dcf3ea 0%, #eef9f4 100%);
+  --ds-gradient-tile-neutral: linear-gradient(145deg, #eef1eb 0%, #f7f8f4 100%);
+  --ds-gradient-fade-edge: linear-gradient(90deg, rgb(243 245 242 / 0) 0%, var(--ds-color-bg) 100%);
+}
+
+:root {
+  /* ---------- Tipografia: famílias ---------- */
+  --ds-font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --ds-font-mono: "JetBrains Mono", ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* ---------- Tipografia: tamanhos (base 16px) ---------- */
+  --ds-text-display: 1.75rem;   /* 28px  "Good morning, Alex." */
+  --ds-text-title: 1.5rem;      /* 24px  "Welcome back", "Your Pro access" */
+  --ds-text-stat: 1.75rem;      /* 28px  "48", "72%" grande */
+  --ds-text-heading: 1.0625rem; /* 17px  títulos de card */
+  --ds-text-body: 0.9375rem;    /* 15px  corpo e botões */
+  --ds-text-small: 0.8125rem;   /* 13px  texto secundário */
+  --ds-text-caption: 0.6875rem; /* 11px  legendas */
+  --ds-text-eyebrow: 0.6875rem; /* 11px  mono caixa-alta */
+
+  --ds-leading-tight: 1.1;
+  --ds-leading-snug: 1.25;
+  --ds-leading-normal: 1.45;
+
+  --ds-weight-regular: 400;
+  --ds-weight-medium: 500;
+  --ds-weight-semibold: 600;
+  --ds-weight-bold: 700;
+
+  --ds-tracking-tight: -0.02em;
+  --ds-tracking-snug: -0.01em;
+  --ds-tracking-normal: 0;
+  --ds-tracking-eyebrow: 0.12em;
+
+  /* ---------- Espaçamento (base 4px) ---------- */
+  --ds-space-0: 0;
+  --ds-space-1: 0.25rem;  /* 4  */
+  --ds-space-2: 0.5rem;   /* 8  */
+  --ds-space-3: 0.75rem;  /* 12 */
+  --ds-space-4: 1rem;     /* 16 */
+  --ds-space-5: 1.25rem;  /* 20 */
+  --ds-space-6: 1.5rem;   /* 24 */
+  --ds-space-8: 2rem;     /* 32 */
+  --ds-space-10: 2.5rem;  /* 40 */
+  --ds-space-12: 3rem;    /* 48 */
+  --ds-space-16: 4rem;    /* 64 */
+  --ds-space-xs: var(--ds-space-1);
+  --ds-space-sm: var(--ds-space-2);
+  --ds-space-md: var(--ds-space-4);
+  --ds-space-lg: var(--ds-space-6);
+  --ds-space-xl: var(--ds-space-8);
+  --ds-space-2xl: var(--ds-space-12);
+  --ds-screen-padding: var(--ds-space-5);   /* 20 — margem lateral de telas */
+  --ds-card-padding: var(--ds-space-4);     /* 16 */
+  --ds-row-padding-y: var(--ds-space-3);    /* 12 */
+  --ds-row-padding-x: var(--ds-space-4);    /* 16 */
+  --ds-stack-gap: var(--ds-space-2);        /* 8 — entre linhas de lista */
+  --ds-section-gap: var(--ds-space-6);      /* 24 — entre blocos de uma tela */
+
+  /* ---------- Raios ----------
+     Reduzidos 50% em relação ao observado nos screenshots (6/8/14/20/28) por decisão do usuário. */
+  --ds-radius-xs: 3px;
+  --ds-radius-sm: 4px;      /* chips de macros, tiles de ícone */
+  --ds-radius-md: 7px;      /* botões, inputs, linhas */
+  --ds-radius-lg: 10px;     /* cards, tiles de feature */
+  --ds-radius-xl: 14px;     /* sheets, painéis grandes */
+  --ds-radius-full: 999px;  /* badges, pills, botões circulares */
+  --ds-radius-device: 44px; /* moldura do aparelho (só vitrine) */
+
+  /* ---------- Bordas ---------- */
+  --ds-border-width: 1px;
+  --ds-border-width-selected: 1.5px;
+
+  /* ---------- Dimensões de componentes ---------- */
+  --ds-size-button-lg: 3.25rem;  /* 52 */
+  --ds-size-button-md: 2.75rem;  /* 44 */
+  --ds-size-button-sm: 2.25rem;  /* 36 */
+  --ds-size-input: 3.25rem;      /* 52 */
+  --ds-size-row: 3.25rem;        /* 52 */
+  --ds-size-icon-button: 2.25rem; /* 36 */
+  --ds-size-tap-min: 2.75rem;    /* 44 — alvo mínimo de toque */
+  --ds-size-tabbar: 4rem;        /* 64 */
+  --ds-size-capture-outer: 4rem; /* 64 */
+  --ds-size-capture-inner: 3rem; /* 48 */
+  --ds-size-check: 1.5rem;       /* 24 */
+  --ds-size-check-sm: 1.125rem;  /* 18 */
+  --ds-size-badge: 1.25rem;      /* 20 */
+  --ds-size-progress: 0.25rem;   /* 4 */
+  --ds-size-ring: 3.5rem;        /* 56 */
+  --ds-size-ring-stroke: 0.375rem; /* 6 */
+  --ds-size-icon: 1.25rem;       /* 20 */
+  --ds-size-icon-sm: 1rem;       /* 16 */
+  --ds-icon-stroke: 1.5;
+
+  /* ---------- Layout ---------- */
+  --ds-container-app: 30rem;      /* 480 — coluna de app em desktop [inf] */
+  --ds-container-content: 72rem;  /* 1152 — páginas de vitrine/documentação [est] */
+  --ds-device-width: 24.5625rem;  /* 393 — largura de referência do aparelho */
+  --ds-breakpoint-sm: 480px;
+  --ds-breakpoint-md: 768px;
+  --ds-breakpoint-lg: 1024px;
+  --ds-breakpoint-xl: 1280px;
+
+  /* ---------- Elevação [obs: quase plana] ---------- */
+  --ds-shadow-none: none;
+  --ds-shadow-overlay: 0 16px 40px rgb(0 0 0 / 0.5), 0 0 0 1px var(--ds-color-border);
+  --ds-shadow-device: 0 30px 60px rgb(0 0 0 / 0.18);
+
+  /* ---------- Movimento [inf] ---------- */
+  --ds-duration-fast: 120ms;
+  --ds-duration-base: 200ms;
+  --ds-duration-slow: 360ms;
+  --ds-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ds-ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ds-icon-swap-duration: 460ms;  /* [inf] slide do ícone no hover */
+  --ds-icon-swap-delay: 0.16s;     /* [inf] troca de cor acontece com o ícone fora */
+
+  /* ---------- Z-index ---------- */
+  --ds-z-base: 0;
+  --ds-z-sticky: 10;
+  --ds-z-tooltip: 70;
+  --ds-z-overlay: 100;
+  --ds-z-modal: 200;
+  --ds-z-toast: 300;
+}

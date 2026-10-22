@@ -1,0 +1,79 @@
+/*
+ * Papéis tipográficos (8). Importar depois de tokens.css.
+ * Carregar as fontes no HTML (exemplo):
+ * <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+ */
+
+.ds-display {
+  font-family: var(--ds-font-sans);
+  font-size: var(--ds-text-display);
+  font-weight: var(--ds-weight-bold);
+  line-height: var(--ds-leading-tight);
+  letter-spacing: var(--ds-tracking-tight);
+}
+
+.ds-title {
+  font-family: var(--ds-font-sans);
+  font-size: var(--ds-text-title);
+  font-weight: var(--ds-weight-medium);
+  line-height: 1.2;
+  letter-spacing: var(--ds-tracking-snug);
+}
+
+.ds-stat {
+  font-family: var(--ds-font-sans);
+  font-size: var(--ds-text-stat);
+  font-weight: var(--ds-weight-bold);
+  line-height: 1;
+  letter-spacing: var(--ds-tracking-tight);
+  font-variant-numeric: tabular-nums;
+}
+
+.ds-heading {
+  font-family: var(--ds-font-sans);
+  font-size: var(--ds-text-heading);
+  font-weight: var(--ds-weight-semibold);
+  line-height: var(--ds-leading-snug);
+  letter-spacing: var(--ds-tracking-snug);
+}
+
+.ds-body {
+  font-size: var(--ds-text-body);
+  font-weight: var(--ds-weight-regular);
+  line-height: var(--ds-leading-normal);
+}
+
+.ds-body-strong {
+  font-size: var(--ds-text-body);
+  font-weight: var(--ds-weight-semibold);
+  line-height: var(--ds-leading-normal);
+}
+
+.ds-small {
+  font-size: var(--ds-text-small);
+  font-weight: var(--ds-weight-regular);
+  line-height: 1.4;
+  color: var(--ds-color-text-secondary);
+}
+
+.ds-caption {
+  font-size: var(--ds-text-caption);
+  font-weight: var(--ds-weight-regular);
+  line-height: 1.3;
+  color: var(--ds-color-text-secondary);
+}
+
+.ds-eyebrow {
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-text-eyebrow);
+  font-weight: var(--ds-weight-medium);
+  line-height: 1.2;
+  letter-spacing: var(--ds-tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--ds-color-text-tertiary);
+}
+
+.ds-text-secondary { color: var(--ds-color-text-secondary); }
+.ds-text-tertiary { color: var(--ds-color-text-tertiary); }
+.ds-text-primary { color: var(--ds-color-primary-fg); }
+.ds-tabular { font-variant-numeric: tabular-nums; }

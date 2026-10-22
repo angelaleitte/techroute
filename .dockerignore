@@ -1,0 +1,14 @@
+node_modules
+.git
+.gitignore
+data/*.db
+data/*.db-*
+docs
+assets
+tests
+README.md
+Dockerfile
+.dockerignore
+.env
+.DS_Store
+Thumbs.db

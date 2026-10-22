@@ -1,7 +1,7 @@
 import { request } from "./http.js";
 
 export async function createAppointment(payload) {
-  const result = await request("/api/appointments", {
+  const result = await request("api/appointments", {
     method: "POST",
     body: payload,
   });
@@ -14,7 +14,7 @@ export async function createAppointment(payload) {
 }
 
 export async function updateAppointment(id, payload) {
-  const result = await request(`/api/appointments/${encodeURIComponent(id)}`, {
+  const result = await request(`api/appointments/${encodeURIComponent(id)}`, {
     method: "PUT",
     body: payload,
   });
@@ -27,7 +27,7 @@ export async function updateAppointment(id, payload) {
 }
 
 export async function cancelAppointment(id, reason) {
-  const result = await request(`/api/appointments/${encodeURIComponent(id)}/cancel`, {
+  const result = await request(`api/appointments/${encodeURIComponent(id)}/cancel`, {
     method: "POST",
     body: { reason },
   });
@@ -40,7 +40,7 @@ export async function cancelAppointment(id, reason) {
 }
 
 export async function closeAppointment(id) {
-  const result = await request(`/api/appointments/${encodeURIComponent(id)}/close`, {
+  const result = await request(`api/appointments/${encodeURIComponent(id)}/close`, {
     method: "POST",
   });
 
@@ -52,7 +52,7 @@ export async function closeAppointment(id) {
 }
 
 export async function fetchAppointments() {
-  const result = await request("/api/appointments");
+  const result = await request("api/appointments");
   if (!result.success) {
     return result;
   }

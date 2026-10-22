@@ -1,7 +1,7 @@
 import { request } from "./http.js";
 
 export async function fetchTechnicians() {
-  const result = await request("/api/technicians");
+  const result = await request("api/technicians");
   if (!result.success) {
     return result;
   }
@@ -9,7 +9,7 @@ export async function fetchTechnicians() {
 }
 
 export async function fetchServiceTypes() {
-  const result = await request("/api/service-types");
+  const result = await request("api/service-types");
   if (!result.success) {
     return result;
   }
