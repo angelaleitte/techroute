@@ -1,0 +1,36 @@
+import { CancelAppointmentService } from "../application/services/CancelAppointmentService.js";
+import { CloseAppointmentService } from "../application/services/CloseAppointmentService.js";
+import { ListAppointmentsService } from "../application/services/ListAppointmentsService.js";
+import { ListCatalogService } from "../application/services/ListCatalogService.js";
+import { RegisterAppointmentService } from "../application/services/RegisterAppointmentService.js";
+import { UpdateAppointmentService } from "../application/services/UpdateAppointmentService.js";
+import { createConnection } from "../infrastructure/data/connection.js";
+import { SqliteAppointmentRepository } from "../infrastructure/repositories/SqliteAppointmentRepository.js";
+import { SqliteServiceTypeRepository } from "../infrastructure/repositories/SqliteServiceTypeRepository.js";
+import { SqliteTechnicianRepository } from "../infrastructure/repositories/SqliteTechnicianRepository.js";
+
+export function composeApp(rootDir) {
+  const db = createConnection(rootDir);
+  const appointmentRepository = new SqliteAppointmentRepository(db);
+  const technicianRepository = new SqliteTechnicianRepository(db);
+  const serviceTypeRepository = new SqliteServiceTypeRepository(db);
+
+  const shared = {
+    appointmentRepository,
+    technicianRepository,
+    serviceTypeRepository,
+  };
+
+  return {
+    db,
+    registerAppointmentService: new RegisterAppointmentService(shared),
+    updateAppointmentService: new UpdateAppointmentService(shared),
+    cancelAppointmentService: new CancelAppointmentService(shared),
+    closeAppointmentService: new CloseAppointmentService(shared),
+    listCatalogService: new ListCatalogService({
+      technicianRepository,
+      serviceTypeRepository,
+    }),
+    listAppointmentsService: new ListAppointmentsService(shared),
+  };
+}

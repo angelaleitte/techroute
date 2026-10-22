@@ -1,0 +1,20 @@
+{
+  "name": "techroute",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "TechRoute — aplicativo de agendamento e logística de visitas técnicas",
+  "main": "src/api/server.js",
+  "scripts": {
+    "start": "node src/api/server.js",
+    "dev": "node --watch src/api/server.js",
+    "test": "node --test tests/core/**/*.test.js tests/application/**/*.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.10.0",
+    "express": "^4.21.2"
+  }
+}

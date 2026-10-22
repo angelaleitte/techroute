@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>TechRoute · Agendar visita técnica</title>
+    <meta name="description" content="Formulário de agendamento de visitas técnicas do TechRoute.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/design-system/tokens/tokens.css">
+    <link rel="stylesheet" href="/design-system/styles/globals.css">
+    <link rel="stylesheet" href="/design-system/styles/typography.css">
+    <link rel="stylesheet" href="/design-system/styles/components.css">
+    <link rel="stylesheet" href="/css/layout.css">
+    <script>
+      (function () {
+        var stored = localStorage.getItem("techroute-theme");
+        var theme = stored || (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.dataset.sidebar = localStorage.getItem("techroute-sidebar") === "collapsed" ? "collapsed" : "expanded";
+      })();
+    </script>
+  </head>
+  <body>
+    <div class="app-page">
+      <div class="app-shell">
+        <div class="app-shell-slot" id="app-shell"></div>
+        <main class="app-content">
+          <div class="app-content-inner" id="app-page"></div>
+        </main>
+      </div>
+    </div>
+    <script type="module" src="/js/pages/schedule-form.js"></script>
+  </body>
+</html>
