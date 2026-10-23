@@ -279,6 +279,10 @@
 .ds-badge--warning { background: var(--ds-color-warning-subtle); color: var(--ds-color-warning); }
 .ds-badge--danger { background: var(--ds-color-danger-subtle); color: var(--ds-color-danger); }
 .ds-badge--info { background: var(--ds-color-info-subtle); color: var(--ds-color-info); }
+.ds-badge--closed {
+  color: #fff;
+  background: #514f4f;
+}
 .ds-badge--dot::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 
 .ds-status {                 /* "On", "Allowed", "While using" */

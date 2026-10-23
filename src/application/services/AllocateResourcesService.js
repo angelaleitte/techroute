@@ -50,12 +50,14 @@ export class AllocateResourcesService {
 
     const technician = this.technicianRepository.findById(saved.technicianId);
     const serviceType = this.serviceTypeRepository.findById(saved.serviceTypeId);
+    const events = this.appointmentRepository.listEventsByAppointmentId(saved.id);
 
     return ok(
       toAppointmentViewModel(saved, {
         technician,
         serviceType,
         resources,
+        events,
         now: this.now(),
       }),
     );

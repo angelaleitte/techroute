@@ -3,8 +3,10 @@
  * A Application depende destes formatos; a Infrastructure os implementa.
  *
  * AppointmentRepository
- *   save(appointment: Appointment): Appointment
- *   update(appointment: Appointment): Appointment | null
+ *   save(appointment: Appointment, event?: AppointmentEvent): Appointment
+ *   update(appointment: Appointment, event?: AppointmentEvent): Appointment | null
+ *   insertEvent(event: AppointmentEvent): AppointmentEvent
+ *   listEventsByAppointmentId(id: string): AppointmentEvent[]
  *   findById(id: string): Appointment | null
  *   listRecent(limit?: number): Appointment[]
  *

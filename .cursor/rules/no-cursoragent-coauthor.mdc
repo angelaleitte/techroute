@@ -1,0 +1,19 @@
+---
+description: Nunca adicionar Cursor/cursoragent como co-autor em commits deste repositório
+alwaysApply: true
+---
+
+# Sem co-autor Cursor / cursoragent
+
+Neste repositório **é proibido** aparecer `cursoragent`, `Cursor` ou qualquer trailer `Co-authored-by` da Cursor nos commits.
+
+## Regras
+
+- Ao criar commits, **não** incluir `Co-authored-by: Cursor <cursoragent@cursor.com>` nem variações.
+- A mensagem do commit deve ter **apenas** autor humano do projeto (config local do git do usuário).
+- Se o ambiente tentar injetar o trailer automaticamente, **remover** antes de finalizar o commit (amend local se ainda não houver push; se já houver push e o usuário pedir remoção, reescrever o commit sem o trailer).
+- Nunca criar tags Git chamadas `cursoragent` ou similares.
+
+## Motivo
+
+O GitHub exibe "angelaleitte and cursoragent" quando o trailer existe — a autora do projeto não quer essa associação neste repo.

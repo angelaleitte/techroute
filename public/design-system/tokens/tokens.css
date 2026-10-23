@@ -56,6 +56,8 @@
   --ds-color-danger-subtle: rgb(255 107 107 / 0.14);
   --ds-color-info: #5aa8ff;             /* [inf] */
   --ds-color-info-subtle: rgb(90 168 255 / 0.14);
+  --ds-color-closed: #fff;
+  --ds-color-closed-subtle: #514f4f;
   --ds-color-rating: #f5b50a;           /* [obs] estrelas */
 
   /* ---------- Cor: dados (macros) [obs] ---------- */
@@ -123,6 +125,8 @@
   --ds-color-danger-subtle: rgb(194 52 48 / 0.1);
   --ds-color-info: #3d6b00;
   --ds-color-info-subtle: rgb(61 107 0 / 0.1);
+  --ds-color-closed: #fff;
+  --ds-color-closed-subtle: #514f4f;
 
   --ds-color-data-primary: #4a7300;
   --ds-color-data-secondary: #9a5a00;

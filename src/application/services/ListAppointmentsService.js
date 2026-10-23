@@ -35,6 +35,7 @@ export class ListAppointmentsService {
         resources: appointment.resourceIds
           .map((id) => resourcesById.get(id))
           .filter(Boolean),
+        events: this.appointmentRepository.listEventsByAppointmentId(appointment.id),
         now,
       }),
     );
