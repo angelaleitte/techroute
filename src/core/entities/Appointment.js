@@ -41,6 +41,8 @@ export class Appointment {
     status = VISIT_STATUS.OPEN,
     cancellationReason = "",
     cancelledAt = null,
+    rescheduleReason = "",
+    rescheduledAt = null,
     createdAt,
     updatedAt = null,
   }) {
@@ -48,6 +50,7 @@ export class Appointment {
     const normalizedNotes = String(notes ?? "").trim();
     const normalizedResources = Array.isArray(resourceIds) ? [...resourceIds] : [];
     const normalizedReason = String(cancellationReason ?? "").trim();
+    const normalizedRescheduleReason = String(rescheduleReason ?? "").trim();
 
     if (!id) {
       return fail("APPOINTMENT_INVARIANT", "Visita precisa de identificação.");
@@ -133,6 +136,8 @@ export class Appointment {
         status: visitStatus,
         cancellationReason: visitStatus.isCancelled() ? normalizedReason : "",
         cancelledAt: visitStatus.isCancelled() ? cancelledAt : null,
+        rescheduleReason: normalizedRescheduleReason,
+        rescheduledAt: normalizedRescheduleReason ? rescheduledAt : null,
         createdAt,
         updatedAt,
       }),
@@ -154,6 +159,8 @@ export class Appointment {
     this.status = props.status;
     this.cancellationReason = props.cancellationReason;
     this.cancelledAt = props.cancelledAt;
+    this.rescheduleReason = props.rescheduleReason;
+    this.rescheduledAt = props.rescheduledAt;
     this.createdAt = props.createdAt;
     this.updatedAt = props.updatedAt;
     Object.freeze(this);
@@ -175,17 +182,26 @@ export class Appointment {
       status: this.status.value,
       cancellationReason: this.cancellationReason,
       cancelledAt: this.cancelledAt,
+      rescheduleReason: this.rescheduleReason,
+      rescheduledAt: this.rescheduledAt,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
     };
   }
 
   resolveDisplayStatus(now = new Date()) {
+    // Sempre prioriza o último status persistido (reaberta/remarcada/fechada/cancelada).
     if (this.status.isCancelled()) {
       return "cancelled";
     }
     if (this.status.isClosed()) {
       return "closed";
+    }
+    if (this.status.isReopened()) {
+      return "reopened";
+    }
+    if (this.status.isRebooked()) {
+      return "rebooked";
     }
 
     const slotDate = new Date(`${this.slot.date}T${this.slot.time}:00`);
@@ -213,8 +229,8 @@ export class Appointment {
       return fail(
         "APPOINTMENT_INVALID_STATE",
         this.status.isCancelled()
-          ? "Visita cancelada não pode ser alterada."
-          : "Visita fechada não pode ser alterada.",
+          ? "Visita cancelada não pode ser alterada. Reabra a visita primeiro."
+          : "Visita fechada não pode ser alterada. Reabra a visita primeiro.",
       );
     }
 
@@ -253,16 +269,33 @@ export class Appointment {
     });
   }
 
-  close(closedAt) {
-    if (this.status.isCancelled()) {
-      return fail("APPOINTMENT_INVALID_STATE", "Visita cancelada não pode ser concluída.");
+  close(closedAt, observation) {
+    if (!this.status.allowsChanges()) {
+      return fail(
+        "APPOINTMENT_INVALID_STATE",
+        this.status.isCancelled()
+          ? "Visita cancelada não pode ser concluída."
+          : "Visita já está fechada.",
+      );
     }
-    if (this.status.isClosed()) {
-      return fail("APPOINTMENT_INVALID_STATE", "Visita já está fechada.");
+    if (!closedAt) {
+      return fail("APPOINTMENT_INVARIANT", "Informe a data da conclusão.");
+    }
+
+    let nextNotes = this.notes;
+    if (observation !== undefined && observation !== null) {
+      const normalizedObservation = String(observation).trim();
+      if (normalizedObservation.length > 500) {
+        return fail("VALIDATION_ERROR", "As observações devem ter no máximo 500 caracteres.");
+      }
+      if (normalizedObservation) {
+        nextNotes = normalizedObservation;
+      }
     }
 
     return Appointment.create({
       ...this.toProps(),
+      notes: nextNotes,
       status: VISIT_STATUS.CLOSED,
       cancellationReason: "",
       cancelledAt: null,
@@ -271,11 +304,13 @@ export class Appointment {
   }
 
   cancel(reason, cancelledAt) {
-    if (this.status.isCancelled()) {
-      return fail("APPOINTMENT_INVALID_STATE", "Visita já está cancelada.");
-    }
-    if (this.status.isClosed()) {
-      return fail("APPOINTMENT_INVALID_STATE", "Visita fechada não pode ser cancelada.");
+    if (!this.status.allowsChanges()) {
+      return fail(
+        "APPOINTMENT_INVALID_STATE",
+        this.status.isCancelled()
+          ? "Visita já está cancelada."
+          : "Visita fechada não pode ser cancelada.",
+      );
     }
 
     const normalizedReason = String(reason ?? "").trim();
@@ -298,6 +333,87 @@ export class Appointment {
       cancellationReason: normalizedReason,
       cancelledAt,
       updatedAt: cancelledAt,
+    });
+  }
+
+  reopen(reason, reopenedAt) {
+    if (!this.status.canReopen()) {
+      return fail(
+        "APPOINTMENT_INVALID_STATE",
+        "Somente visitas canceladas ou fechadas podem ser reabertas.",
+      );
+    }
+
+    const normalizedReason = String(reason ?? "").trim();
+    if (normalizedReason.length < 5) {
+      return fail(
+        "VALIDATION_ERROR",
+        "Informe o motivo da reabertura (mínimo 5 caracteres).",
+      );
+    }
+    if (normalizedReason.length > 500) {
+      return fail("VALIDATION_ERROR", "O motivo deve ter no máximo 500 caracteres.");
+    }
+    if (!reopenedAt) {
+      return fail("APPOINTMENT_INVARIANT", "Informe a data da reabertura.");
+    }
+
+    const nextStatus = this.status.isCancelled()
+      ? VISIT_STATUS.REBOOKED
+      : VISIT_STATUS.REOPENED;
+
+    return Appointment.create({
+      ...this.toProps(),
+      status: nextStatus,
+      cancellationReason: "",
+      cancelledAt: null,
+      updatedAt: reopenedAt,
+    });
+  }
+
+  reschedule({ date, time, reason }, rescheduledAt) {
+    if (!this.status.allowsChanges()) {
+      return fail(
+        "APPOINTMENT_INVALID_STATE",
+        this.status.isCancelled()
+          ? "Visita cancelada não pode ser reagendada. Reabra a visita primeiro."
+          : "Visita fechada não pode ser reagendada.",
+      );
+    }
+
+    const normalizedReason = String(reason ?? "").trim();
+    if (normalizedReason.length < 5) {
+      return fail(
+        "VALIDATION_ERROR",
+        "Informe o motivo do reagendamento (mínimo 5 caracteres).",
+      );
+    }
+    if (normalizedReason.length > 500) {
+      return fail("VALIDATION_ERROR", "O motivo deve ter no máximo 500 caracteres.");
+    }
+    if (!rescheduledAt) {
+      return fail("APPOINTMENT_INVARIANT", "Informe a data do reagendamento.");
+    }
+
+    const slotResult = VisitSlot.create(date, time);
+    if (!slotResult.success) {
+      return slotResult;
+    }
+
+    const nextSlot = slotResult.value;
+    if (nextSlot.equals(this.slot)) {
+      return fail(
+        "VALIDATION_ERROR",
+        "Informe uma nova data ou horário diferente do atual.",
+      );
+    }
+
+    return Appointment.create({
+      ...this.toProps(),
+      slot: nextSlot,
+      rescheduleReason: normalizedReason,
+      rescheduledAt,
+      updatedAt: rescheduledAt,
     });
   }
 }

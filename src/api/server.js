@@ -17,7 +17,7 @@ const catalogController = new CatalogController(services);
 
 app.disable("x-powered-by");
 app.use(express.json({ limit: "32kb" }));
-app.use("/design-system", express.static(path.join(rootDir, "docs", "design-system")));
+app.use("/design-system", express.static(path.join(rootDir, "public", "design-system")));
 app.use("/readme-preview", express.static(path.join(rootDir, "docs", "readme-preview")));
 app.use(express.static(path.join(rootDir, "public")));
 
@@ -34,6 +34,8 @@ app.put("/api/appointments/:id", appointmentController.update);
 app.put("/api/appointments/:id/resources", appointmentController.allocateResources);
 app.post("/api/appointments/:id/cancel", appointmentController.cancel);
 app.post("/api/appointments/:id/close", appointmentController.close);
+app.post("/api/appointments/:id/reschedule", appointmentController.reschedule);
+app.post("/api/appointments/:id/reopen", appointmentController.reopen);
 
 app.use((error, _request, response, _next) => {
   console.error(error);

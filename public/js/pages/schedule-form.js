@@ -4,6 +4,8 @@ import {
   closeAppointment,
   createAppointment,
   fetchAppointments,
+  reopenAppointment,
+  rescheduleAppointment,
   updateAppointment,
 } from "../api/appointments.js";
 import { fetchResources, fetchServiceTypes, fetchTechnicians } from "../api/catalog.js";
@@ -36,6 +38,8 @@ const emptyValues = {
 const STATUS_FILTERS = [
   { id: "all", label: "Todos os status" },
   { id: "open", label: "Abertas" },
+  { id: "reopened", label: "Reabertas" },
+  { id: "rebooked", label: "Remarcadas" },
   { id: "late", label: "Atrasadas" },
   { id: "closed", label: "Fechadas" },
   { id: "cancelled", label: "Canceladas" },
@@ -55,6 +59,20 @@ const state = {
   cancelReason: "",
   cancelError: "",
   cancelLoading: false,
+  rescheduleTarget: null,
+  rescheduleDate: "",
+  rescheduleTime: "",
+  rescheduleReason: "",
+  rescheduleError: "",
+  rescheduleLoading: false,
+  reopenTarget: null,
+  reopenReason: "",
+  reopenError: "",
+  reopenLoading: false,
+  closeTarget: null,
+  closeNotes: "",
+  closeError: "",
+  closeLoading: false,
   statusFilter: "all",
   clientFilter: "",
   clientFilterQuery: "",
@@ -65,6 +83,8 @@ const state = {
   formOpen: false,
   formMode: "create",
   viewingCanEdit: false,
+  viewingCanReschedule: false,
+  viewingCanReopen: false,
   allocateTargetId: "",
   allocateSelectedIds: [],
   allocateLoading: false,
@@ -178,6 +198,8 @@ function fillFormFromAppointment(appointment) {
     resourceIds: [...(appointment.resourceIds || [])],
   };
   state.viewingCanEdit = Boolean(appointment.canEdit);
+  state.viewingCanReschedule = Boolean(appointment.canReschedule);
+  state.viewingCanReopen = Boolean(appointment.canReopen);
 }
 
 function openNewVisit() {
@@ -186,8 +208,13 @@ function openNewVisit() {
   state.errors = {};
   state.banner = null;
   state.cancelTarget = null;
+  state.rescheduleTarget = null;
+  state.reopenTarget = null;
+  state.closeTarget = null;
   state.formMode = "create";
   state.viewingCanEdit = false;
+  state.viewingCanReschedule = false;
+  state.viewingCanReopen = false;
   state.formOpen = true;
   state.statusMenuOpen = false;
 }
@@ -197,6 +224,9 @@ function openView(appointment) {
   state.errors = {};
   state.banner = null;
   state.cancelTarget = null;
+  state.rescheduleTarget = null;
+  state.reopenTarget = null;
+  state.closeTarget = null;
   state.formMode = "view";
   state.formOpen = true;
   state.statusMenuOpen = false;
@@ -229,9 +259,18 @@ function closeFormModal() {
   state.formMode = "create";
   state.editingId = null;
   state.viewingCanEdit = false;
+  state.viewingCanReschedule = false;
+  state.viewingCanReopen = false;
   state.values = { ...emptyValues, resourceIds: [] };
   state.errors = {};
   state.loading = false;
+}
+
+function getEditingAppointment() {
+  if (!state.editingId) {
+    return null;
+  }
+  return state.appointments.find((item) => item.id === state.editingId) ?? null;
 }
 
 function cancelEdit() {
@@ -245,6 +284,8 @@ const actionIcons = {
   edit: `<svg class="ds-icon ds-icon--sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>`,
   check: `<svg class="ds-icon ds-icon--sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>`,
   cancel: `<svg class="ds-icon ds-icon--sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="m15 9-6 6M9 9l6 6"></path></svg>`,
+  reschedule: `<svg class="ds-icon ds-icon--sm" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4M12 14v3M10.5 15.5h3"></path></svg>`,
+  reopen: `<svg class="ds-icon ds-icon--sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v5h5"></path></svg>`,
   discard: `<svg class="ds-icon ds-icon--sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="m19 6-.8 12.2A2 2 0 0 1 16.2 20H7.8a2 2 0 0 1-2-1.8L5 6"></path></svg>`,
   save: `<svg class="ds-icon ds-icon--sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"></path><path d="M17 21v-8H7v8"></path><path d="M7 3v5h8"></path></svg>`,
   filter: `<svg class="ds-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3Z"></path></svg>`,
@@ -257,11 +298,15 @@ const actionIcons = {
   statusLate: `<svg class="ds-icon ds-icon--sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>`,
   statusClosed: `<svg class="ds-icon ds-icon--sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="m8.5 12.5 2.5 2.5 5-5"></path></svg>`,
   statusCancelled: `<svg class="ds-icon ds-icon--sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="m15 9-6 6M9 9l6 6"></path></svg>`,
+  statusReopened: `<svg class="ds-icon ds-icon--sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v5h5"></path></svg>`,
+  statusRebooked: `<svg class="ds-icon ds-icon--sm" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>`,
 };
 
 const statusFilterIcons = {
   all: actionIcons.statusAll,
   open: actionIcons.statusOpen,
+  reopened: actionIcons.statusReopened,
+  rebooked: actionIcons.statusRebooked,
   late: actionIcons.statusLate,
   closed: actionIcons.statusClosed,
   cancelled: actionIcons.statusCancelled,
@@ -311,6 +356,11 @@ function renderVisitActions(appointment) {
     <div class="app-visit-card__actions">
       <button class="ds-btn ds-btn--secondary ds-btn--sm" type="button" data-action="view-visit" data-id="${escapeHtml(appointment.id)}">${actionIcons.view}<span>Visualizar</span></button>
       ${
+        appointment.canReschedule
+          ? `<button class="ds-btn ds-btn--secondary ds-btn--sm" type="button" data-action="open-reschedule" data-id="${escapeHtml(appointment.id)}">${actionIcons.reschedule}<span>Reagendar</span></button>`
+          : ""
+      }
+      ${
         appointment.canClose
           ? `<button class="ds-btn ds-btn--secondary ds-btn--sm" type="button" data-action="close-visit" data-id="${escapeHtml(appointment.id)}">${actionIcons.check}<span>Concluir</span></button>`
           : ""
@@ -318,6 +368,11 @@ function renderVisitActions(appointment) {
       ${
         appointment.canCancel
           ? `<button class="ds-btn ds-btn--danger ds-btn--sm" type="button" data-action="open-cancel" data-id="${escapeHtml(appointment.id)}">${actionIcons.cancel}<span>Cancelar</span></button>`
+          : ""
+      }
+      ${
+        appointment.canReopen
+          ? `<button class="ds-btn ds-btn--secondary ds-btn--sm" type="button" data-action="open-reopen" data-id="${escapeHtml(appointment.id)}">${actionIcons.reopen}<span>Reabrir</span></button>`
           : ""
       }
     </div>
@@ -393,6 +448,11 @@ function renderVisitTableActions(appointment) {
     <div class="app-visit-table__actions">
       <button class="ds-icon-btn ds-tooltip ds-tooltip--bottom" type="button" data-action="view-visit" data-id="${escapeHtml(appointment.id)}" data-tooltip="Visualizar" aria-label="Visualizar">${actionIcons.view}</button>
       ${
+        appointment.canReschedule
+          ? `<button class="ds-icon-btn ds-tooltip ds-tooltip--bottom" type="button" data-action="open-reschedule" data-id="${escapeHtml(appointment.id)}" data-tooltip="Reagendar" aria-label="Reagendar">${actionIcons.reschedule}</button>`
+          : ""
+      }
+      ${
         appointment.canClose
           ? `<button class="ds-icon-btn ds-tooltip ds-tooltip--bottom ds-tooltip--success" type="button" data-action="close-visit" data-id="${escapeHtml(appointment.id)}" data-tooltip="Concluir" aria-label="Concluir">${actionIcons.check}</button>`
           : ""
@@ -400,6 +460,11 @@ function renderVisitTableActions(appointment) {
       ${
         appointment.canCancel
           ? `<button class="ds-icon-btn ds-tooltip ds-tooltip--bottom ds-tooltip--danger app-visit-table__cancel" type="button" data-action="open-cancel" data-id="${escapeHtml(appointment.id)}" data-tooltip="Cancelar" aria-label="Cancelar">${actionIcons.cancel}</button>`
+          : ""
+      }
+      ${
+        appointment.canReopen
+          ? `<button class="ds-icon-btn ds-tooltip ds-tooltip--bottom" type="button" data-action="open-reopen" data-id="${escapeHtml(appointment.id)}" data-tooltip="Reabrir" aria-label="Reabrir">${actionIcons.reopen}</button>`
           : ""
       }
     </div>
@@ -660,6 +725,61 @@ function renderVisitsSection() {
   `;
 }
 
+function renderCloseModal() {
+  if (!state.closeTarget) {
+    return "";
+  }
+
+  const target = state.closeTarget;
+
+  return `
+    <div class="app-modal" role="presentation">
+      <div class="app-modal__backdrop" data-action="dismiss-close"></div>
+      <div
+        class="app-modal__panel ds-card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="close-visit-title"
+      >
+        <h2 class="ds-heading" id="close-visit-title">Concluir visita</h2>
+        <p class="ds-small">
+          Confirme a conclusão da visita de
+          <strong>${escapeHtml(target.clientName)}</strong>
+          (${escapeHtml(target.slotLabel)}). Se quiser, inclua uma observação.
+        </p>
+        ${renderField({
+          id: "closeNotes",
+          label: "Observações (opcional)",
+          error: state.closeError,
+          hint: "Opcional. Registre detalhes do atendimento ou pendências.",
+          controlHtml: `
+            <textarea
+              class="ds-input app-textarea"
+              id="closeNotes"
+              name="closeNotes"
+              maxlength="500"
+              rows="4"
+              {{described}}
+              ${state.closeError ? 'aria-invalid="true"' : ""}
+            >${escapeHtml(state.closeNotes)}</textarea>
+          `,
+        })}
+        <div class="app-modal__actions">
+          <button class="ds-btn ds-btn--ghost" type="button" data-action="dismiss-close">Voltar</button>
+          <button
+            class="ds-btn ds-btn--primary${state.closeLoading ? " is-loading" : ""}"
+            type="button"
+            data-action="confirm-close"
+            ${state.closeLoading ? "disabled" : ""}
+          >
+            Confirmar conclusão
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function renderCancelModal() {
   if (!state.cancelTarget) {
     return "";
@@ -714,8 +834,199 @@ function renderCancelModal() {
   `;
 }
 
+function renderRescheduleModal() {
+  if (!state.rescheduleTarget) {
+    return "";
+  }
+
+  const target = state.rescheduleTarget;
+
+  return `
+    <div class="app-modal" role="presentation">
+      <div class="app-modal__backdrop" data-action="dismiss-reschedule"></div>
+      <div
+        class="app-modal__panel ds-card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="reschedule-visit-title"
+      >
+        <h2 class="ds-heading" id="reschedule-visit-title">Reagendar visita</h2>
+        <p class="ds-small">
+          Escolha nova data e horário para a visita de
+          <strong>${escapeHtml(target.clientName)}</strong>
+          (atual: ${escapeHtml(target.slotLabel)}). O status permanece aberto.
+        </p>
+        <div class="app-form__slot">
+          ${renderField({
+            id: "rescheduleDate",
+            label: "Nova data",
+            error: state.rescheduleError && !state.rescheduleDate ? state.rescheduleError : "",
+            controlHtml: `
+              <input
+                class="ds-input"
+                id="rescheduleDate"
+                name="rescheduleDate"
+                type="date"
+                value="${escapeHtml(state.rescheduleDate)}"
+                {{described}}
+              >
+            `,
+          })}
+          ${renderField({
+            id: "rescheduleTime",
+            label: "Novo horário",
+            controlHtml: `
+              <input
+                class="ds-input"
+                id="rescheduleTime"
+                name="rescheduleTime"
+                type="time"
+                value="${escapeHtml(state.rescheduleTime)}"
+                {{described}}
+              >
+            `,
+          })}
+        </div>
+        ${renderField({
+          id: "rescheduleReason",
+          label: "Motivo do reagendamento",
+          error: state.rescheduleError,
+          controlHtml: `
+            <textarea
+              class="ds-input app-textarea"
+              id="rescheduleReason"
+              name="rescheduleReason"
+              maxlength="500"
+              rows="4"
+              {{described}}
+              ${state.rescheduleError ? 'aria-invalid="true"' : ""}
+            >${escapeHtml(state.rescheduleReason)}</textarea>
+          `,
+        })}
+        <div class="app-modal__actions">
+          <button class="ds-btn ds-btn--ghost" type="button" data-action="dismiss-reschedule">Voltar</button>
+          <button
+            class="ds-btn ds-btn--primary${state.rescheduleLoading ? " is-loading" : ""}"
+            type="button"
+            data-action="confirm-reschedule"
+            ${state.rescheduleLoading ? "disabled" : ""}
+          >
+            Confirmar reagendamento
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderReopenModal() {
+  if (!state.reopenTarget) {
+    return "";
+  }
+
+  const target = state.reopenTarget;
+
+  return `
+    <div class="app-modal" role="presentation">
+      <div class="app-modal__backdrop" data-action="dismiss-reopen"></div>
+      <div
+        class="app-modal__panel ds-card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="reopen-visit-title"
+      >
+        <h2 class="ds-heading" id="reopen-visit-title">Reabrir visita</h2>
+        <p class="ds-small">
+          A visita de <strong>${escapeHtml(target.clientName)}</strong>
+          (${escapeHtml(target.slotLabel)})
+          ${
+            target.status === "cancelled"
+              ? "passará para o status <strong>Remarcada</strong>."
+              : "passará para o status <strong>Reaberta</strong>."
+          }
+          O evento anterior permanece no histórico. Depois você pode editar ou reagendar.
+        </p>
+        ${renderField({
+          id: "reopenReason",
+          label: "Motivo da reabertura",
+          error: state.reopenError,
+          controlHtml: `
+            <textarea
+              class="ds-input app-textarea"
+              id="reopenReason"
+              name="reopenReason"
+              maxlength="500"
+              rows="4"
+              {{described}}
+              ${state.reopenError ? 'aria-invalid="true"' : ""}
+            >${escapeHtml(state.reopenReason)}</textarea>
+          `,
+        })}
+        <div class="app-modal__actions">
+          <button class="ds-btn ds-btn--ghost" type="button" data-action="dismiss-reopen">Voltar</button>
+          <button
+            class="ds-btn ds-btn--primary${state.reopenLoading ? " is-loading" : ""}"
+            type="button"
+            data-action="confirm-reopen"
+            ${state.reopenLoading ? "disabled" : ""}
+          >
+            Confirmar reabertura
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderEventHistory() {
+  if (state.formMode !== "view") {
+    return "";
+  }
+
+  const appointment = getEditingAppointment();
+  const events = appointment?.events ?? [];
+
+  if (events.length === 0) {
+    return `
+      <section class="app-history" aria-labelledby="visit-history-title">
+        <h3 class="app-form__checklist-title" id="visit-history-title">Histórico</h3>
+        <p class="ds-small">Nenhum evento registrado para esta visita.</p>
+      </section>
+    `;
+  }
+
+  return `
+    <section class="app-history" aria-labelledby="visit-history-title">
+      <h3 class="app-form__checklist-title" id="visit-history-title">Histórico</h3>
+      <ol class="app-history__list">
+        ${events
+          .map((event) => {
+            const slotChange =
+              event.eventType === "rescheduled" && event.fromSlotLabel && event.toSlotLabel
+                ? `<span class="app-history__slot">${escapeHtml(event.fromSlotLabel)} → ${escapeHtml(event.toSlotLabel)}</span>`
+                : "";
+            const reason = event.reason
+              ? `<span class="app-history__reason">${escapeHtml(event.reason)}</span>`
+              : "";
+            return `
+              <li class="app-history__item" data-event-type="${escapeHtml(event.eventType)}">
+                <div class="app-history__head">
+                  <span class="ds-badge ${escapeHtml(event.eventTypeBadgeClass || "ds-badge--subtle")}">${escapeHtml(event.eventTypeLabel)}</span>
+                  <time class="ds-small" datetime="${escapeHtml(event.createdAt)}">${escapeHtml(event.createdAtLabel)}</time>
+                </div>
+                ${slotChange}
+                ${reason}
+              </li>
+            `;
+          })
+          .join("")}
+      </ol>
+    </section>
+  `;
+}
+
 function renderFormActions() {
-  const { formMode, loading, viewingCanEdit } = state;
+  const { formMode, loading, viewingCanEdit, viewingCanReschedule, viewingCanReopen } = state;
 
   if (formMode === "view") {
     return `
@@ -723,6 +1034,20 @@ function renderFormActions() {
         <button class="ds-btn ds-btn--secondary" type="button" data-action="close-form">
           <span>Fechar</span>
         </button>
+        ${
+          viewingCanReopen
+            ? `<button class="ds-btn ds-btn--secondary" type="button" data-action="open-reopen" data-id="${escapeHtml(state.editingId || "")}">
+                ${actionIcons.reopen}<span>Reabrir</span>
+              </button>`
+            : ""
+        }
+        ${
+          viewingCanReschedule
+            ? `<button class="ds-btn ds-btn--secondary" type="button" data-action="open-reschedule" data-id="${escapeHtml(state.editingId || "")}">
+                ${actionIcons.reschedule}<span>Reagendar</span>
+              </button>`
+            : ""
+        }
         ${
           viewingCanEdit
             ? `<button class="ds-btn ds-btn--primary" type="button" data-action="enable-edit">
@@ -974,6 +1299,7 @@ function renderForm() {
         `,
       })}
 
+      ${renderEventHistory()}
       ${renderFormActions()}
     </form>
   `;
@@ -1211,7 +1537,12 @@ function renderResourcesPage() {
 }
 
 function renderPage(root) {
-  const modalOpen = state.formOpen || Boolean(state.cancelTarget);
+  const modalOpen =
+    state.formOpen ||
+    Boolean(state.cancelTarget) ||
+    Boolean(state.rescheduleTarget) ||
+    Boolean(state.reopenTarget) ||
+    Boolean(state.closeTarget);
   document.body.classList.toggle("is-modal-open", modalOpen);
 
   root.innerHTML = `
@@ -1220,6 +1551,9 @@ function renderPage(root) {
     </div>
     ${renderFormModal()}
     ${renderCancelModal()}
+    ${renderRescheduleModal()}
+    ${renderReopenModal()}
+    ${renderCloseModal()}
   `;
 
   bindPage(root);
@@ -1381,6 +1715,26 @@ function bindForm(root) {
 
 function bindPage(root) {
   bindForm(root);
+
+  root.querySelector("#rescheduleDate")?.addEventListener("input", (event) => {
+    state.rescheduleDate = event.target.value;
+  });
+
+  root.querySelector("#rescheduleTime")?.addEventListener("input", (event) => {
+    state.rescheduleTime = event.target.value;
+  });
+
+  root.querySelector("#rescheduleReason")?.addEventListener("input", (event) => {
+    state.rescheduleReason = event.target.value;
+  });
+
+  root.querySelector("#reopenReason")?.addEventListener("input", (event) => {
+    state.reopenReason = event.target.value;
+  });
+
+  root.querySelector("#closeNotes")?.addEventListener("input", (event) => {
+    state.closeNotes = event.target.value;
+  });
 
   root.querySelector("#cancelReason")?.addEventListener("input", (event) => {
     state.cancelReason = event.target.value;
@@ -1608,35 +1962,234 @@ async function handlePageAction(root, event) {
     return;
   }
 
-  if (action === "close-visit") {
+  if (action === "close-visit" || action === "open-close") {
     const appointment = state.appointments.find((item) => item.id === id);
     if (!appointment?.canClose) {
       return;
     }
+    state.closeTarget = appointment;
+    state.closeNotes = appointment.notes || "";
+    state.closeError = "";
+    state.closeLoading = false;
+    renderPage(root);
+    root.querySelector("#closeNotes")?.focus();
+    return;
+  }
 
-    const confirmed = window.confirm(
-      `Concluir a visita de ${appointment.clientName} (${appointment.slotLabel})?`,
-    );
-    if (!confirmed) {
+  if (action === "dismiss-close") {
+    state.closeTarget = null;
+    state.closeNotes = "";
+    state.closeError = "";
+    state.closeLoading = false;
+    renderPage(root);
+    return;
+  }
+
+  if (action === "confirm-close") {
+    if (!state.closeTarget) {
       return;
     }
 
-    const result = await closeAppointment(id);
-    if (!result.success) {
-      state.banner = { tone: "danger", message: result.error.message };
+    const notes = String(root.querySelector("#closeNotes")?.value ?? "").trim();
+    state.closeNotes = notes;
+
+    if (notes.length > 500) {
+      state.closeError = "As observações devem ter no máximo 500 caracteres.";
       renderPage(root);
+      root.querySelector("#closeNotes")?.focus();
       return;
     }
 
-    if (state.editingId === id) {
+    state.closeError = "";
+    state.closeLoading = true;
+    renderPage(root);
+
+    const targetId = state.closeTarget.id;
+    const result = await closeAppointment(targetId, notes);
+    state.closeLoading = false;
+
+    if (!result.success) {
+      state.closeError = result.error.message;
+      renderPage(root);
+      root.querySelector("#closeNotes")?.focus();
+      return;
+    }
+
+    if (state.editingId === targetId) {
       cancelEdit();
     }
 
+    state.closeTarget = null;
+    state.closeNotes = "";
     state.banner = {
       tone: "success",
       message: `Visita de ${result.value.clientName} marcada como fechada.`,
     };
     await loadAppointments();
+    renderPage(root);
+    return;
+  }
+
+  if (action === "open-reopen") {
+    const appointmentId = id || state.editingId;
+    const appointment = state.appointments.find((item) => item.id === appointmentId);
+    if (!appointment?.canReopen) {
+      return;
+    }
+    state.reopenTarget = appointment;
+    state.reopenReason = "";
+    state.reopenError = "";
+    state.reopenLoading = false;
+    renderPage(root);
+    root.querySelector("#reopenReason")?.focus();
+    return;
+  }
+
+  if (action === "dismiss-reopen") {
+    state.reopenTarget = null;
+    state.reopenReason = "";
+    state.reopenError = "";
+    state.reopenLoading = false;
+    renderPage(root);
+    return;
+  }
+
+  if (action === "confirm-reopen") {
+    if (!state.reopenTarget) {
+      return;
+    }
+
+    const reason = String(root.querySelector("#reopenReason")?.value ?? "").trim();
+    state.reopenReason = reason;
+
+    if (reason.length < 5) {
+      state.reopenError = "Informe o motivo da reabertura (mínimo 5 caracteres).";
+      renderPage(root);
+      root.querySelector("#reopenReason")?.focus();
+      return;
+    }
+
+    state.reopenError = "";
+    state.reopenLoading = true;
+    renderPage(root);
+
+    const targetId = state.reopenTarget.id;
+    const result = await reopenAppointment(targetId, reason);
+    state.reopenLoading = false;
+
+    if (!result.success) {
+      state.reopenError = result.error.message;
+      renderPage(root);
+      root.querySelector("#reopenReason")?.focus();
+      return;
+    }
+
+    state.reopenTarget = null;
+    state.reopenReason = "";
+    const outcomeLabel = result.value.status === "rebooked" ? "remarcada" : "reaberta";
+    state.banner = {
+      tone: "success",
+      message: `Visita de ${result.value.clientName} marcada como ${outcomeLabel}. Agora você pode editar ou reagendar.`,
+    };
+    await loadAppointments();
+
+    if (state.formOpen && state.editingId === targetId) {
+      const updated = state.appointments.find((item) => item.id === targetId);
+      if (updated) {
+        openView(updated);
+      }
+    }
+
+    renderPage(root);
+    return;
+  }
+
+  if (action === "open-reschedule") {
+    const appointmentId = id || state.editingId;
+    const appointment = state.appointments.find((item) => item.id === appointmentId);
+    if (!appointment?.canReschedule) {
+      return;
+    }
+    state.rescheduleTarget = appointment;
+    state.rescheduleDate = appointment.date || "";
+    state.rescheduleTime = appointment.time || "";
+    state.rescheduleReason = "";
+    state.rescheduleError = "";
+    state.rescheduleLoading = false;
+    renderPage(root);
+    root.querySelector("#rescheduleDate")?.focus();
+    return;
+  }
+
+  if (action === "dismiss-reschedule") {
+    state.rescheduleTarget = null;
+    state.rescheduleDate = "";
+    state.rescheduleTime = "";
+    state.rescheduleReason = "";
+    state.rescheduleError = "";
+    state.rescheduleLoading = false;
+    renderPage(root);
+    return;
+  }
+
+  if (action === "confirm-reschedule") {
+    if (!state.rescheduleTarget) {
+      return;
+    }
+
+    const date = String(root.querySelector("#rescheduleDate")?.value ?? "").trim();
+    const time = String(root.querySelector("#rescheduleTime")?.value ?? "").trim();
+    const reason = String(root.querySelector("#rescheduleReason")?.value ?? "").trim();
+    state.rescheduleDate = date;
+    state.rescheduleTime = time;
+    state.rescheduleReason = reason;
+
+    if (!date || !time) {
+      state.rescheduleError = "Informe a nova data e o horário.";
+      renderPage(root);
+      root.querySelector("#rescheduleDate")?.focus();
+      return;
+    }
+
+    if (reason.length < 5) {
+      state.rescheduleError = "Informe o motivo do reagendamento (mínimo 5 caracteres).";
+      renderPage(root);
+      root.querySelector("#rescheduleReason")?.focus();
+      return;
+    }
+
+    state.rescheduleError = "";
+    state.rescheduleLoading = true;
+    renderPage(root);
+
+    const targetId = state.rescheduleTarget.id;
+    const result = await rescheduleAppointment(targetId, { date, time, reason });
+    state.rescheduleLoading = false;
+
+    if (!result.success) {
+      state.rescheduleError = result.error.message;
+      renderPage(root);
+      root.querySelector("#rescheduleReason")?.focus();
+      return;
+    }
+
+    state.rescheduleTarget = null;
+    state.rescheduleDate = "";
+    state.rescheduleTime = "";
+    state.rescheduleReason = "";
+    state.banner = {
+      tone: "success",
+      message: `Visita de ${result.value.clientName} reagendada para ${result.value.slotLabel}.`,
+    };
+    await loadAppointments();
+
+    if (state.formOpen && state.editingId === targetId) {
+      const updated = state.appointments.find((item) => item.id === targetId);
+      if (updated) {
+        openView(updated);
+      }
+    }
+
     renderPage(root);
     return;
   }

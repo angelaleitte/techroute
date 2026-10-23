@@ -552,6 +552,9 @@ body.is-modal-open {
   gap: var(--ds-space-3);
   width: 100%;
   min-width: 0;
+  position: relative;
+  z-index: calc(var(--ds-z-tooltip) + 10);
+  overflow: visible;
 }
 
 .app-visits__heading {
@@ -594,6 +597,8 @@ body.is-modal-open {
   gap: var(--ds-space-3);
   margin-left: auto;
   min-width: 0;
+  position: relative;
+  overflow: visible;
 }
 
 .app-visits__toolbar {
@@ -607,7 +612,8 @@ body.is-modal-open {
   min-width: min(100%, 18rem);
   overflow: visible;
   position: relative;
-  z-index: 1;
+  /* Acima das ações da tabela (tooltips ~70); evita o menu de status ficar por baixo */
+  z-index: calc(var(--ds-z-tooltip) + 10);
 }
 
 .app-visits__toolbar-tools {
@@ -721,6 +727,11 @@ body.is-modal-open {
 .app-visits__filter {
   position: relative;
   display: inline-flex;
+  z-index: 1;
+}
+
+.app-visits__filter[aria-expanded="true"] {
+  z-index: var(--ds-z-overlay);
 }
 
 .app-visits__filter-label {
@@ -784,8 +795,9 @@ body.is-modal-open {
   padding: calc(var(--ds-space-2) * 0.7);
   border: var(--ds-border-width) solid var(--ds-color-border);
   border-radius: var(--ds-radius-md);
-  background: var(--ds-color-bg);
+  background: var(--ds-color-surface);
   box-shadow: var(--ds-shadow-overlay);
+  isolation: isolate;
 }
 
 .app-visits__menu-item {
@@ -823,6 +835,14 @@ body.is-modal-open {
   grid-template-columns: minmax(0, 1fr);
   gap: var(--ds-stack-gap);
   overflow: visible;
+  align-items: stretch;
+}
+
+.app-visit-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
 }
 
 .app-visit-table-wrap {
@@ -897,11 +917,12 @@ body.is-modal-open {
   gap: var(--ds-space-1);
   overflow: visible;
   position: relative;
-  z-index: 1;
+  z-index: 0;
 }
 
 .app-visit-table__actions:hover,
 .app-visit-table__actions:focus-within {
+  /* Abaixo do menu de filtros da toolbar (tooltip+10) */
   z-index: calc(var(--ds-z-tooltip) + 2);
 }
 
@@ -934,6 +955,7 @@ body.is-modal-open {
 }
 
 .app-visit-card__rows {
+  flex: 1 1 auto;
   margin-top: var(--ds-space-3);
 }
 
@@ -948,16 +970,17 @@ body.is-modal-open {
 
 .app-visit-card__actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: stretch;
   gap: var(--ds-space-2);
-  margin-top: var(--ds-space-4);
+  margin-top: auto;
   padding-top: var(--ds-space-3);
   border-top: var(--ds-border-width) solid var(--ds-color-border);
 }
 
 .app-visit-card__actions .ds-btn {
+  width: 100%;
   min-height: var(--ds-size-tap-min);
-  flex: 1 1 calc(50% - var(--ds-space-2));
 }
 
 .app-form__actions {
@@ -1055,6 +1078,56 @@ body.is-modal-open {
   min-height: var(--ds-size-tap-min);
 }
 
+.ds-badge.ds-badge--closed {
+  color: #fff;
+  background: #514f4f;
+}
+
+.app-history {
+  display: grid;
+  gap: var(--ds-space-3);
+  width: 100%;
+  min-width: 0;
+  margin-top: var(--ds-space-2);
+  grid-column: 1 / -1;
+}
+
+.app-history__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--ds-space-3);
+  width: 100%;
+}
+
+.app-history__item {
+  display: grid;
+  gap: var(--ds-space-1);
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: var(--ds-space-3);
+  border: var(--ds-border-width) solid var(--ds-color-border);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-color-surface);
+}
+
+.app-history__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ds-space-2);
+}
+
+.app-history__slot,
+.app-history__reason {
+  color: var(--ds-color-text-secondary);
+  font-size: var(--ds-font-size-sm);
+  line-height: var(--ds-line-height-snug);
+}
+
 .app-empty {
   padding: var(--ds-space-6) var(--ds-space-4);
   text-align: center;
@@ -1115,10 +1188,6 @@ body.is-modal-open {
     min-width: 16rem;
   }
 
-  .app-visit-card__actions .ds-btn {
-    flex: 0 1 auto;
-  }
-
   .app-header {
     padding-left: var(--ds-space-6);
     padding-right: var(--ds-space-6);
@@ -1145,6 +1214,7 @@ body.is-modal-open {
 
   .app-form__span,
   .app-form__actions,
+  .app-form > .app-history,
   .app-form > [data-field="technicianId"],
   .app-form > [data-field="email"],
   .app-form > [data-field="notes"],
@@ -1177,11 +1247,41 @@ body.is-modal-open {
   }
 
   .app-visit-list {
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+  }
+
+  .app-visit-card__actions {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: var(--ds-space-2);
+  }
+
+  .app-visit-card__actions .ds-btn {
+    width: auto;
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: var(--ds-size-button-sm);
+    padding-inline: var(--ds-space-3);
+    font-size: var(--ds-text-small);
+    white-space: nowrap;
+  }
+
+  .app-visit-card__actions .ds-btn .ds-icon {
+    flex-shrink: 0;
+  }
+
+  .app-visit-card__actions .ds-btn span {
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
 
 @media (min-width: 1280px) {
+  .app-visit-list {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr));
+  }
+
   .app-shell {
     display: flex;
     align-items: stretch;
@@ -1429,6 +1529,7 @@ body.is-modal-open {
 
   .app-modal__panel--form .app-form__span,
   .app-modal__panel--form .app-form__actions,
+  .app-modal__panel--form .app-form > .app-history,
   .app-modal__panel--form .app-form > [data-field="technicianId"],
   .app-modal__panel--form .app-form > [data-field="email"],
   .app-modal__panel--form .app-form > [data-field="notes"] {

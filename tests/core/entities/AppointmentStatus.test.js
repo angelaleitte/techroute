@@ -39,6 +39,28 @@ test("exibe atrasada quando slot já passou e status é aberto", () => {
   assert.equal(appointment.resolveDisplayStatus(new Date("2026-10-21T12:00:00")), "late");
 });
 
+test("mantém status remarcada mesmo com slot no passado", () => {
+  const appointment = Appointment.create(
+    validProps({
+      status: VISIT_STATUS.REBOOKED,
+      slot: VisitSlot.create("2020-01-01", "08:00").value,
+    }),
+  ).value;
+
+  assert.equal(appointment.resolveDisplayStatus(new Date("2026-10-21T12:00:00")), "rebooked");
+});
+
+test("mantém status reaberta mesmo com slot no passado", () => {
+  const appointment = Appointment.create(
+    validProps({
+      status: VISIT_STATUS.REOPENED,
+      slot: VisitSlot.create("2020-01-01", "08:00").value,
+    }),
+  ).value;
+
+  assert.equal(appointment.resolveDisplayStatus(new Date("2026-10-21T12:00:00")), "reopened");
+});
+
 test("cancela visita com motivo válido", () => {
   const appointment = Appointment.create(validProps()).value;
   const cancelled = appointment.cancel("Cliente remarcou a visita", "2026-10-21T18:00:00.000Z");

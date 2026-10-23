@@ -122,11 +122,14 @@ export class UpdateAppointmentService {
       return fail("APPOINTMENT_NOT_FOUND", "Visita não encontrada.");
     }
 
+    const events = this.appointmentRepository.listEventsByAppointmentId(saved.id);
+
     return ok(
       toAppointmentViewModel(saved, {
         technician,
         serviceType,
         resources,
+        events,
         now: this.now(),
       }),
     );

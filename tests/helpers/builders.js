@@ -56,22 +56,40 @@ export function buildAppointment(overrides = {}) {
 }
 
 export class InMemoryAppointmentRepository {
-  constructor(items = []) {
+  constructor(items = [], events = []) {
     this.items = [...items];
+    this.events = [...events];
   }
 
-  save(appointment) {
+  save(appointment, event = null) {
     this.items.push(appointment);
+    if (event) {
+      this.events.push(event);
+    }
     return appointment;
   }
 
-  update(appointment) {
+  update(appointment, event = null) {
     const index = this.items.findIndex((item) => item.id === appointment.id);
     if (index < 0) {
       return null;
     }
     this.items[index] = appointment;
+    if (event) {
+      this.events.push(event);
+    }
     return appointment;
+  }
+
+  insertEvent(event) {
+    this.events.push(event);
+    return event;
+  }
+
+  listEventsByAppointmentId(appointmentId) {
+    return this.events
+      .filter((event) => event.appointmentId === appointmentId)
+      .sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
   }
 
   findById(id) {

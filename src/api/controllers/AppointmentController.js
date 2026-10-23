@@ -35,6 +35,8 @@ export class AppointmentController {
     allocateResourcesService,
     cancelAppointmentService,
     closeAppointmentService,
+    rescheduleAppointmentService,
+    reopenAppointmentService,
     listAppointmentsService,
   }) {
     this.registerAppointmentService = registerAppointmentService;
@@ -42,6 +44,8 @@ export class AppointmentController {
     this.allocateResourcesService = allocateResourcesService;
     this.cancelAppointmentService = cancelAppointmentService;
     this.closeAppointmentService = closeAppointmentService;
+    this.rescheduleAppointmentService = rescheduleAppointmentService;
+    this.reopenAppointmentService = reopenAppointmentService;
     this.listAppointmentsService = listAppointmentsService;
   }
 
@@ -70,7 +74,19 @@ export class AppointmentController {
   };
 
   close = (request, response) => {
-    const result = this.closeAppointmentService.execute(request.params.id);
+    const result = this.closeAppointmentService.execute(request.params.id, request.body);
+    const { status, body } = toHttp(result);
+    response.status(status).json(status === 200 ? { appointment: body } : body);
+  };
+
+  reschedule = (request, response) => {
+    const result = this.rescheduleAppointmentService.execute(request.params.id, request.body);
+    const { status, body } = toHttp(result);
+    response.status(status).json(status === 200 ? { appointment: body } : body);
+  };
+
+  reopen = (request, response) => {
+    const result = this.reopenAppointmentService.execute(request.params.id, request.body);
     const { status, body } = toHttp(result);
     response.status(status).json(status === 200 ? { appointment: body } : body);
   };
