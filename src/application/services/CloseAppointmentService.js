@@ -6,11 +6,13 @@ export class CloseAppointmentService {
     appointmentRepository,
     technicianRepository,
     serviceTypeRepository,
+    resourceRepository,
     now = () => new Date(),
   }) {
     this.appointmentRepository = appointmentRepository;
     this.technicianRepository = technicianRepository;
     this.serviceTypeRepository = serviceTypeRepository;
+    this.resourceRepository = resourceRepository;
     this.now = now;
   }
 
@@ -37,7 +39,15 @@ export class CloseAppointmentService {
 
     const technician = this.technicianRepository.findById(saved.technicianId);
     const serviceType = this.serviceTypeRepository.findById(saved.serviceTypeId);
+    const resources = this.resourceRepository.findByIds(saved.resourceIds);
 
-    return ok(toAppointmentViewModel(saved, { technician, serviceType, now: this.now() }));
+    return ok(
+      toAppointmentViewModel(saved, {
+        technician,
+        serviceType,
+        resources,
+        now: this.now(),
+      }),
+    );
   }
 }

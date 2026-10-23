@@ -27,9 +27,11 @@ app.get("/api/health", (_request, response) => {
 
 app.get("/api/technicians", catalogController.technicians);
 app.get("/api/service-types", catalogController.serviceTypes);
+app.get("/api/resources", catalogController.resources);
 app.get("/api/appointments", appointmentController.list);
 app.post("/api/appointments", appointmentController.create);
 app.put("/api/appointments/:id", appointmentController.update);
+app.put("/api/appointments/:id/resources", appointmentController.allocateResources);
 app.post("/api/appointments/:id/cancel", appointmentController.cancel);
 app.post("/api/appointments/:id/close", appointmentController.close);
 

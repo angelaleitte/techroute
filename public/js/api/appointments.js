@@ -26,6 +26,19 @@ export async function updateAppointment(id, payload) {
   return { success: true, value: result.value.appointment };
 }
 
+export async function allocateAppointmentResources(id, resourceIds) {
+  const result = await request(`api/appointments/${encodeURIComponent(id)}/resources`, {
+    method: "PUT",
+    body: { resourceIds },
+  });
+
+  if (!result.success) {
+    return result;
+  }
+
+  return { success: true, value: result.value.appointment };
+}
+
 export async function cancelAppointment(id, reason) {
   const result = await request(`api/appointments/${encodeURIComponent(id)}/cancel`, {
     method: "POST",

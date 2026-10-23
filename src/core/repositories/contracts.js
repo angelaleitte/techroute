@@ -15,10 +15,16 @@
  * ServiceTypeRepository
  *   findById(id: string): ServiceType | null
  *   listAll(): ServiceType[]
+ *
+ * ResourceRepository
+ *   findById(id: string): Resource | null
+ *   findByIds(ids: string[]): Resource[]
+ *   listAll(): Resource[]
  */
 
 export const RepositoryContracts = Object.freeze({
   Appointment: "AppointmentRepository",
   Technician: "TechnicianRepository",
   ServiceType: "ServiceTypeRepository",
+  Resource: "ResourceRepository",
 });

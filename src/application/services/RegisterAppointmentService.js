@@ -7,18 +7,21 @@ import { PhoneNumber } from "../../core/value-objects/PhoneNumber.js";
 import { VisitSlot } from "../../core/value-objects/VisitSlot.js";
 import { normalizeRegisterAppointmentInput } from "../input-models/RegisterAppointmentInput.js";
 import { toAppointmentViewModel } from "../view-models/mappers.js";
+import { resolveResources } from "./resolveResources.js";
 
 export class RegisterAppointmentService {
   constructor({
     appointmentRepository,
     technicianRepository,
     serviceTypeRepository,
+    resourceRepository,
     now = () => new Date(),
     createId = () => randomUUID(),
   }) {
     this.appointmentRepository = appointmentRepository;
     this.technicianRepository = technicianRepository;
     this.serviceTypeRepository = serviceTypeRepository;
+    this.resourceRepository = resourceRepository;
     this.now = now;
     this.createId = createId;
   }
@@ -83,6 +86,13 @@ export class RegisterAppointmentService {
       return fail("SERVICE_TYPE_NOT_FOUND", "Tipo de serviço não encontrado.");
     }
 
+    const resourcesResult = resolveResources(this.resourceRepository, input.resourceIds);
+    if (!resourcesResult.success) {
+      return resourcesResult;
+    }
+
+    const resources = resourcesResult.value;
+
     const appointmentResult = Appointment.create({
       id: this.createId(),
       clientName: input.clientName,
@@ -94,7 +104,7 @@ export class RegisterAppointmentService {
       technicianId: technician.id,
       serviceTypeId: serviceType.id,
       notes: input.notes,
-      resourceIds: [],
+      resourceIds: resources.map((resource) => resource.id),
       createdAt: this.now().toISOString(),
     });
 
@@ -103,6 +113,13 @@ export class RegisterAppointmentService {
     }
 
     const saved = this.appointmentRepository.save(appointmentResult.value);
-    return ok(toAppointmentViewModel(saved, { technician, serviceType, now: this.now() }));
+    return ok(
+      toAppointmentViewModel(saved, {
+        technician,
+        serviceType,
+        resources,
+        now: this.now(),
+      }),
+    );
   }
 }

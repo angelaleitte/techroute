@@ -4,6 +4,7 @@ const SIDEBAR_KEY = "techroute-sidebar";
 const icons = {
   calendar: `<svg class="ds-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>`,
   list: `<svg class="ds-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path></svg>`,
+  resources: `<svg class="ds-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>`,
   check: `<svg class="ds-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>`,
   menu: `<svg class="ds-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>`,
   close: `<svg class="ds-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m18 6-12 12M6 6l12 12"></path></svg>`,
@@ -48,7 +49,11 @@ function applySidebarMode(container, mode) {
 }
 
 function currentHash() {
-  return window.location.hash || "#agendar";
+  const hash = window.location.hash || "#visitas";
+  if (hash === "#agendar") {
+    return "#visitas";
+  }
+  return hash;
 }
 
 export function getCurrentTheme() {
@@ -93,10 +98,6 @@ function navMarkup() {
 
   return `
     <nav class="app-nav" aria-label="Principal">
-      <a class="app-nav__link ds-tooltip ds-tooltip--right" href="#agendar" data-tooltip="Agendar" ${hash === "#agendar" ? 'aria-current="page"' : ""}>
-        ${icons.calendar}
-        <span class="app-nav__label">Agendar</span>
-      </a>
       <a class="app-nav__link ds-tooltip ds-tooltip--right" href="#visitas" data-tooltip="Visitas" ${hash === "#visitas" ? 'aria-current="page"' : ""}>
         ${icons.list}
         <span class="app-nav__label">Visitas</span>

@@ -1,111 +1,132 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="920" height="560" viewBox="0 0 920 560" role="img" aria-labelledby="title desc">
-  <title id="title">TechRoute  esquema do banco SQLite</title>
-  <desc id="desc">Diagrama ER: technicians e service_types (1) relacionam-se com appointments (N). Cores Lime Night.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="780" viewBox="0 0 920 780" role="img" aria-labelledby="title desc">
+  <title id="title">TechRoute - esquema do banco SQLite</title>
+  <desc id="desc">Diagrama ER com appointment_resources como juncao N:N.</desc>
+  <rect width="920" height="780" fill="#f3f5f2"/>
 
-  <defs>
-    <!-- Crow's foot: lado N (muitos)  apontando para a esquerda -->
-    <marker id="crow-left" markerWidth="14" markerHeight="14" refX="1" refY="7" orient="auto" markerUnits="userSpaceOnUse">
-      <path d="M13 1 L1 7 L13 13" fill="none" stroke="#5a5f68" stroke-width="1.5"/>
-      <circle cx="4" cy="7" r="1.6" fill="none" stroke="#5a5f68" stroke-width="1.2"/>
-    </marker>
-    <!-- Crow's foot: lado N  apontando para a direita -->
-    <marker id="crow-right" markerWidth="14" markerHeight="14" refX="13" refY="7" orient="auto" markerUnits="userSpaceOnUse">
-      <path d="M1 1 L13 7 L1 13" fill="none" stroke="#5a5f68" stroke-width="1.5"/>
-      <circle cx="10" cy="7" r="1.6" fill="none" stroke="#5a5f68" stroke-width="1.2"/>
-    </marker>
-    <!-- Lado 1: barra dupla -->
-    <marker id="one-bar" markerWidth="10" markerHeight="12" refX="5" refY="6" orient="auto" markerUnits="userSpaceOnUse">
-      <line x1="3" y1="1" x2="3" y2="11" stroke="#5a5f68" stroke-width="1.5"/>
-      <line x1="7" y1="1" x2="7" y2="11" stroke="#5a5f68" stroke-width="1.5"/>
-    </marker>
-  </defs>
-
-  <!-- Fundo suave (tema claro do DS) -->
-  <rect width="920" height="560" fill="#f3f5f2"/>
-
-  <!-- ========== technicians (esquerda) ========== -->
-  <g id="table-technicians">
-    <rect x="40" y="40" width="220" height="168" rx="2" fill="#ffffff" stroke="#9aa8c0" stroke-width="1.5"/>
-    <rect x="40" y="40" width="220" height="32" fill="#ccff00"/>
-    <text x="150" y="61" text-anchor="middle" font-family="Inter, Segoe UI, sans-serif" font-size="14" font-weight="700" fill="#0b0c0f">technicians</text>
-    <!-- PK -->
-    <rect x="52" y="84" width="22" height="14" rx="2" fill="#0b0c0f"/>
-    <text x="63" y="95" text-anchor="middle" font-family="JetBrains Mono, Consolas, monospace" font-size="8" font-weight="700" fill="#ccff00">PK</text>
-    <text x="82" y="95" font-family="Inter, Segoe UI, sans-serif" font-size="13" fill="#0a0c10">id</text>
-    <!-- separator pontilhado -->
-    <line x1="52" y1="108" x2="248" y2="108" stroke="#9aa8c0" stroke-width="1" stroke-dasharray="3 3"/>
-    <text x="52" y="128" font-family="Inter, Segoe UI, sans-serif" font-size="13" fill="#0a0c10">name</text>
-    <text x="52" y="150" font-family="Inter, Segoe UI, sans-serif" font-size="13" fill="#0a0c10">specialty</text>
-    <text x="52" y="172" font-family="Inter, Segoe UI, sans-serif" font-size="13" fill="#0a0c10">active</text>
+  <!-- technicians: x=60 y=40 w=220 h=150 -->
+  <g id="technicians">
+    <rect x="60" y="40" width="220" height="150" rx="6" fill="#fff" stroke="#9aa8c0" stroke-width="1.5"/>
+    <rect x="60" y="40" width="220" height="32" fill="#ccff00"/>
+    <text x="170" y="61" text-anchor="middle" font-family="Inter, Segoe UI, sans-serif" font-size="14" font-weight="700" fill="#0b0c0f">technicians</text>
+    <rect x="72" y="86" width="22" height="14" rx="2" fill="#0b0c0f"/>
+    <text x="83" y="97" text-anchor="middle" font-family="JetBrains Mono, Consolas, monospace" font-size="8" font-weight="700" fill="#ccff00">PK</text>
+    <text x="102" y="97" font-family="Inter, Segoe UI, sans-serif" font-size="13" fill="#0a0c10">id</text>
+    <line x1="72" y1="110" x2="268" y2="110" stroke="#c5ccd6" stroke-dasharray="3 3"/>
+    <text x="72" y="130" font-family="Inter, Segoe UI, sans-serif" font-size="13" fill="#0a0c10">name</text>
+    <text x="72" y="150" font-family="Inter, Segoe UI, sans-serif" font-size="13" fill="#0a0c10">specialty</text>
+    <text x="72" y="170" font-family="Inter, Segoe UI, sans-serif" font-size="13" fill="#0a0c10">active</text>
   </g>
 
-  <!-- ========== service_types (direita) ========== -->
-  <g id="table-service-types">
-    <rect x="660" y="40" width="220" height="146" rx="2" fill="#ffffff" stroke="#9aa8c0" stroke-width="1.5"/>
-    <rect x="660" y="40" width="220" height="32" fill="#ccff00"/>
-    <text x="770" y="61" text-anchor="middle" font-family="Inter, Segoe UI, sans-serif" font-size="14" font-weight="700" fill="#0b0c0f">service_types</text>
-    <rect x="672" y="84" width="22" height="14" rx="2" fill="#0b0c0f"/>
-    <text x="683" y="95" text-anchor="middle" font-family="JetBrains Mono, Consolas, monospace" font-size="8" font-weight="700" fill="#ccff00">PK</text>
-    <text x="702" y="95" font-family="Inter, Segoe UI, sans-serif" font-size="13" fill="#0a0c10">id</text>
-    <line x1="672" y1="108" x2="868" y2="108" stroke="#9aa8c0" stroke-width="1" stroke-dasharray="3 3"/>
-    <text x="672" y="128" font-family="Inter, Segoe UI, sans-serif" font-size="13" fill="#0a0c10">name</text>
-    <text x="672" y="150" font-family="Inter, Segoe UI, sans-serif" font-size="13" fill="#0a0c10">description</text>
+  <!-- service_types: x=640 y=40 w=220 h=130 -->
+  <g id="service_types">
+    <rect x="640" y="40" width="220" height="130" rx="6" fill="#fff" stroke="#9aa8c0" stroke-width="1.5"/>
+    <rect x="640" y="40" width="220" height="32" fill="#ccff00"/>
+    <text x="750" y="61" text-anchor="middle" font-family="Inter, Segoe UI, sans-serif" font-size="14" font-weight="700" fill="#0b0c0f">service_types</text>
+    <rect x="652" y="86" width="22" height="14" rx="2" fill="#0b0c0f"/>
+    <text x="663" y="97" text-anchor="middle" font-family="JetBrains Mono, Consolas, monospace" font-size="8" font-weight="700" fill="#ccff00">PK</text>
+    <text x="682" y="97" font-family="Inter, Segoe UI, sans-serif" font-size="13" fill="#0a0c10">id</text>
+    <line x1="652" y1="110" x2="848" y2="110" stroke="#c5ccd6" stroke-dasharray="3 3"/>
+    <text x="652" y="130" font-family="Inter, Segoe UI, sans-serif" font-size="13" fill="#0a0c10">name</text>
+    <text x="652" y="150" font-family="Inter, Segoe UI, sans-serif" font-size="13" fill="#0a0c10">description</text>
   </g>
 
-  <!-- ========== appointments (centro inferior) ========== -->
-  <g id="table-appointments">
-    <rect x="280" y="250" width="360" height="280" rx="2" fill="#ffffff" stroke="#9aa8c0" stroke-width="1.5"/>
-    <rect x="280" y="250" width="360" height="32" fill="#ccff00"/>
+  <!-- appointments: x=260 y=250 w=400 h=220 -->
+  <g id="appointments">
+    <rect x="260" y="250" width="400" height="220" rx="6" fill="#fff" stroke="#9aa8c0" stroke-width="1.5"/>
+    <rect x="260" y="250" width="400" height="32" fill="#ccff00"/>
     <text x="460" y="271" text-anchor="middle" font-family="Inter, Segoe UI, sans-serif" font-size="14" font-weight="700" fill="#0b0c0f">appointments</text>
-    <rect x="292" y="294" width="22" height="14" rx="2" fill="#0b0c0f"/>
-    <text x="303" y="305" text-anchor="middle" font-family="JetBrains Mono, Consolas, monospace" font-size="8" font-weight="700" fill="#ccff00">PK</text>
-    <text x="322" y="305" font-family="Inter, Segoe UI, sans-serif" font-size="13" fill="#0a0c10">id</text>
-    <line x1="292" y1="318" x2="628" y2="318" stroke="#9aa8c0" stroke-width="1" stroke-dasharray="3 3"/>
-    <text x="292" y="338" font-family="Inter, Segoe UI, sans-serif" font-size="13" fill="#0a0c10">client_name</text>
-    <text x="292" y="358" font-family="Inter, Segoe UI, sans-serif" font-size="13" fill="#0a0c10">location · phone · phone_secondary · email</text>
-    <text x="292" y="378" font-family="Inter, Segoe UI, sans-serif" font-size="13" fill="#0a0c10">visit_date · visit_time</text>
-    <!-- FKs -->
-    <rect x="292" y="392" width="22" height="14" rx="2" fill="#3d6b00"/>
-    <text x="303" y="403" text-anchor="middle" font-family="JetBrains Mono, Consolas, monospace" font-size="8" font-weight="700" fill="#ccff00">FK</text>
-    <text x="322" y="403" font-family="Inter, Segoe UI, sans-serif" font-size="13" fill="#0a0c10">technician_id ’ technicians</text>
-    <rect x="292" y="416" width="22" height="14" rx="2" fill="#3d6b00"/>
-    <text x="303" y="427" text-anchor="middle" font-family="JetBrains Mono, Consolas, monospace" font-size="8" font-weight="700" fill="#ccff00">FK</text>
-    <text x="322" y="427" font-family="Inter, Segoe UI, sans-serif" font-size="13" fill="#0a0c10">service_type_id ’ service_types</text>
-    <text x="292" y="450" font-family="Inter, Segoe UI, sans-serif" font-size="13" fill="#0a0c10">notes · resource_ids</text>
-    <text x="292" y="470" font-family="Inter, Segoe UI, sans-serif" font-size="13" fill="#0a0c10">status · cancellation_reason · cancelled_at</text>
-    <text x="292" y="490" font-family="Inter, Segoe UI, sans-serif" font-size="13" fill="#0a0c10">created_at · updated_at</text>
+    <rect x="272" y="296" width="22" height="14" rx="2" fill="#0b0c0f"/>
+    <text x="283" y="307" text-anchor="middle" font-family="JetBrains Mono, Consolas, monospace" font-size="8" font-weight="700" fill="#ccff00">PK</text>
+    <text x="302" y="307" font-family="Inter, Segoe UI, sans-serif" font-size="13" fill="#0a0c10">id</text>
+    <line x1="272" y1="320" x2="648" y2="320" stroke="#c5ccd6" stroke-dasharray="3 3"/>
+    <text x="272" y="340" font-family="Inter, Segoe UI, sans-serif" font-size="13" fill="#0a0c10">client_name / contacts / location</text>
+    <text x="272" y="360" font-family="Inter, Segoe UI, sans-serif" font-size="13" fill="#0a0c10">visit_date / visit_time / notes</text>
+    <rect x="272" y="374" width="22" height="14" rx="2" fill="#3d6b00"/>
+    <text x="283" y="385" text-anchor="middle" font-family="JetBrains Mono, Consolas, monospace" font-size="8" font-weight="700" fill="#ccff00">FK</text>
+    <text x="302" y="385" font-family="Inter, Segoe UI, sans-serif" font-size="13" fill="#0a0c10">technician_id -&gt; technicians</text>
+    <rect x="272" y="398" width="22" height="14" rx="2" fill="#3d6b00"/>
+    <text x="283" y="409" text-anchor="middle" font-family="JetBrains Mono, Consolas, monospace" font-size="8" font-weight="700" fill="#ccff00">FK</text>
+    <text x="302" y="409" font-family="Inter, Segoe UI, sans-serif" font-size="13" fill="#0a0c10">service_type_id -&gt; service_types</text>
+    <text x="272" y="438" font-family="Inter, Segoe UI, sans-serif" font-size="13" fill="#0a0c10">status / cancelled_at / created_at / updated_at</text>
   </g>
 
-  <!-- Relação technicians (1) < appointments (N) -->
-  <path
-    d="M150 208 L150 230 L280 230 L280 294"
-    fill="none"
-    stroke="#5a5f68"
-    stroke-width="1.5"
-    marker-start="url(#one-bar)"
-    marker-end="url(#crow-right)"
-  />
-  <text x="170" y="224" font-family="Inter, Segoe UI, sans-serif" font-size="11" fill="#6e727a">1 : N</text>
+  <!-- appointment_resources: x=300 y=540 w=320 h=100 -->
+  <g id="appointment_resources">
+    <rect x="300" y="540" width="320" height="100" rx="6" fill="#fff" stroke="#9aa8c0" stroke-width="1.5"/>
+    <rect x="300" y="540" width="320" height="32" fill="#ccff00"/>
+    <text x="460" y="561" text-anchor="middle" font-family="Inter, Segoe UI, sans-serif" font-size="14" font-weight="700" fill="#0b0c0f">appointment_resources</text>
+    <rect x="312" y="586" width="22" height="14" rx="2" fill="#3d6b00"/>
+    <text x="323" y="597" text-anchor="middle" font-family="JetBrains Mono, Consolas, monospace" font-size="8" font-weight="700" fill="#ccff00">FK</text>
+    <text x="342" y="597" font-family="Inter, Segoe UI, sans-serif" font-size="13" fill="#0a0c10">appointment_id -&gt; appointments</text>
+    <rect x="312" y="610" width="22" height="14" rx="2" fill="#3d6b00"/>
+    <text x="323" y="621" text-anchor="middle" font-family="JetBrains Mono, Consolas, monospace" font-size="8" font-weight="700" fill="#ccff00">FK</text>
+    <text x="342" y="621" font-family="Inter, Segoe UI, sans-serif" font-size="13" fill="#0a0c10">resource_id -&gt; resources</text>
+  </g>
 
-  <!-- Relação service_types (1) < appointments (N) -->
-  <path
-    d="M770 186 L770 230 L640 230 L640 294"
-    fill="none"
-    stroke="#5a5f68"
-    stroke-width="1.5"
-    marker-start="url(#one-bar)"
-    marker-end="url(#crow-left)"
-  />
-  <text x="690" y="224" font-family="Inter, Segoe UI, sans-serif" font-size="11" fill="#6e727a">1 : N</text>
+  <!-- resources: x=60 y=560 w=200 h=140 -->
+  <g id="resources">
+    <rect x="60" y="560" width="200" height="140" rx="6" fill="#fff" stroke="#9aa8c0" stroke-width="1.5"/>
+    <rect x="60" y="560" width="200" height="32" fill="#ccff00"/>
+    <text x="160" y="581" text-anchor="middle" font-family="Inter, Segoe UI, sans-serif" font-size="14" font-weight="700" fill="#0b0c0f">resources</text>
+    <rect x="72" y="606" width="22" height="14" rx="2" fill="#0b0c0f"/>
+    <text x="83" y="617" text-anchor="middle" font-family="JetBrains Mono, Consolas, monospace" font-size="8" font-weight="700" fill="#ccff00">PK</text>
+    <text x="102" y="617" font-family="Inter, Segoe UI, sans-serif" font-size="13" fill="#0a0c10">id</text>
+    <line x1="72" y1="630" x2="248" y2="630" stroke="#c5ccd6" stroke-dasharray="3 3"/>
+    <text x="72" y="650" font-family="Inter, Segoe UI, sans-serif" font-size="13" fill="#0a0c10">name</text>
+    <text x="72" y="670" font-family="Inter, Segoe UI, sans-serif" font-size="13" fill="#0a0c10">category / description</text>
+  </g>
 
-  <!-- Legenda -->
-  <g transform="translate(40, 520)">
+  <!-- LINHAS: do centro da borda ate o centro da borda oposta -->
+  <g stroke="#5a5f68" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <!-- technicians bottom-center (170,190) -> appointments top-leftish (340,250) -->
+    <path d="M170 190 L170 220 L340 220 L340 250"/>
+    <!-- service_types bottom-center (750,170) -> appointments top-rightish (580,250) -->
+    <path d="M750 170 L750 220 L580 220 L580 250"/>
+    <!-- appointments bottom-center (460,470) -> appointment_resources top-center (460,540) -->
+    <path d="M460 470 L460 540"/>
+    <!-- resources right-center (260,630) -> appointment_resources left (300,630) -->
+    <path d="M260 630 L300 630"/>
+  </g>
+
+  <!-- pontinhos de ancoragem nas bordas -->
+  <g fill="#5a5f68">
+    <circle cx="170" cy="190" r="3.5"/>
+    <circle cx="340" cy="250" r="3.5"/>
+    <circle cx="750" cy="170" r="3.5"/>
+    <circle cx="580" cy="250" r="3.5"/>
+    <circle cx="460" cy="470" r="3.5"/>
+    <circle cx="460" cy="540" r="3.5"/>
+    <circle cx="260" cy="630" r="3.5"/>
+    <circle cx="300" cy="630" r="3.5"/>
+  </g>
+
+  <!-- labels de cardinalidade AO LADO das linhas (nao em cima) -->
+  <text x="186" y="214" font-family="Inter, Segoe UI, sans-serif" font-size="12" font-weight="600" fill="#3d4450">1</text>
+  <text x="348" y="244" font-family="Inter, Segoe UI, sans-serif" font-size="12" font-weight="600" fill="#3d4450">N</text>
+  <text x="250" y="214" font-family="Inter, Segoe UI, sans-serif" font-size="11" fill="#6e727a">1 : N</text>
+
+  <text x="758" y="196" font-family="Inter, Segoe UI, sans-serif" font-size="12" font-weight="600" fill="#3d4450">1</text>
+  <text x="588" y="244" font-family="Inter, Segoe UI, sans-serif" font-size="12" font-weight="600" fill="#3d4450">N</text>
+  <text x="650" y="214" font-family="Inter, Segoe UI, sans-serif" font-size="11" fill="#6e727a">1 : N</text>
+
+  <text x="470" y="500" font-family="Inter, Segoe UI, sans-serif" font-size="12" font-weight="600" fill="#3d4450">1</text>
+  <text x="470" y="530" font-family="Inter, Segoe UI, sans-serif" font-size="12" font-weight="600" fill="#3d4450">N</text>
+  <text x="490" y="512" font-family="Inter, Segoe UI, sans-serif" font-size="11" fill="#6e727a">1 : N</text>
+
+  <text x="268" y="622" font-family="Inter, Segoe UI, sans-serif" font-size="12" font-weight="600" fill="#3d4450">1</text>
+  <text x="282" y="622" font-family="Inter, Segoe UI, sans-serif" font-size="12" font-weight="600" fill="#3d4450">N</text>
+  <text x="268" y="652" font-family="Inter, Segoe UI, sans-serif" font-size="11" fill="#6e727a">1 : N</text>
+
+  <text x="460" y="670" text-anchor="middle" font-family="Inter, Segoe UI, sans-serif" font-size="12" fill="#6e727a">N : N entre appointments e resources via appointment_resources</text>
+
+  <!-- legenda -->
+  <g transform="translate(60, 740)">
     <rect x="0" y="0" width="14" height="14" rx="2" fill="#0b0c0f"/>
     <text x="7" y="11" text-anchor="middle" font-family="JetBrains Mono, Consolas, monospace" font-size="7" font-weight="700" fill="#ccff00">PK</text>
-    <text x="22" y="11" font-family="Inter, Segoe UI, sans-serif" font-size="12" fill="#0a0c10">chave primária</text>
+    <text x="22" y="11" font-family="Inter, Segoe UI, sans-serif" font-size="12" fill="#0a0c10">chave primaria</text>
     <rect x="140" y="0" width="14" height="14" rx="2" fill="#3d6b00"/>
     <text x="147" y="11" text-anchor="middle" font-family="JetBrains Mono, Consolas, monospace" font-size="7" font-weight="700" fill="#ccff00">FK</text>
     <text x="162" y="11" font-family="Inter, Segoe UI, sans-serif" font-size="12" fill="#0a0c10">chave estrangeira</text>
-    <text x="320" y="11" font-family="Inter, Segoe UI, sans-serif" font-size="12" fill="#6e727a">Lime Night · SQLite · TechRoute</text>
+    <text x="320" y="11" font-family="Inter, Segoe UI, sans-serif" font-size="12" fill="#6e727a">1 = um lado Â· N = muitos Â· Lime Night / SQLite</text>
   </g>
 </svg>

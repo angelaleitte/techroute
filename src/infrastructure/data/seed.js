@@ -12,6 +12,81 @@ export const SEED_SERVICE_TYPES = [
   { id: "svc-vistoria", name: "Vistoria", description: "Avaliação técnica no local do cliente" },
 ];
 
+export const SEED_RESOURCES = [
+  {
+    id: "res-cabo-utp",
+    name: "Cabo UTP Cat6",
+    category: "material",
+    description: "Bobina ou metro de cabo de rede",
+  },
+  {
+    id: "res-conectores-rj45",
+    name: "Conectores RJ45",
+    category: "material",
+    description: "Pacote de conectores para crimpagem",
+  },
+  {
+    id: "res-fita-isolante",
+    name: "Fita isolante",
+    category: "material",
+    description: "Isolamento e organização de cabos",
+  },
+  {
+    id: "res-parafusos-buchas",
+    name: "Parafusos e buchas",
+    category: "material",
+    description: "Fixação em parede e estrutura",
+  },
+  {
+    id: "res-alicate-crimpar",
+    name: "Alicate de crimpar",
+    category: "ferramenta",
+    description: "Crimpagem de conectores RJ45",
+  },
+  {
+    id: "res-multimetro",
+    name: "Multímetro",
+    category: "ferramenta",
+    description: "Medição elétrica e continuidade",
+  },
+  {
+    id: "res-furadeira",
+    name: "Furadeira",
+    category: "ferramenta",
+    description: "Furos para instalação e fixação",
+  },
+  {
+    id: "res-chave-fenda",
+    name: "Jogo de chaves",
+    category: "ferramenta",
+    description: "Chaves de fenda e Philips",
+  },
+  {
+    id: "res-roteador-teste",
+    name: "Roteador de teste",
+    category: "equipamento",
+    description: "Validação de conexão no local",
+  },
+  {
+    id: "res-notebook-campo",
+    name: "Notebook de campo",
+    category: "equipamento",
+    description: "Configuração e diagnósticos",
+  },
+  {
+    id: "res-medidor-sinal",
+    name: "Medidor de sinal",
+    category: "equipamento",
+    description: "Análise de qualidade de sinal",
+  },
+  {
+    id: "res-escada",
+    name: "Escada telescópica",
+    category: "equipamento",
+    description: "Acesso a pontos altos",
+  },
+];
+
 export function seedCatalog(db) {
   const insertTechnician = db.prepare(`
     INSERT OR IGNORE INTO technicians (id, name, specialty, active)
@@ -21,6 +96,10 @@ export function seedCatalog(db) {
     INSERT OR IGNORE INTO service_types (id, name, description)
     VALUES (@id, @name, @description)
   `);
+  const insertResource = db.prepare(`
+    INSERT OR IGNORE INTO resources (id, name, category, description)
+    VALUES (@id, @name, @category, @description)
+  `);
 
   const seed = db.transaction(() => {
     for (const technician of SEED_TECHNICIANS) {
@@ -28,6 +107,9 @@ export function seedCatalog(db) {
     }
     for (const serviceType of SEED_SERVICE_TYPES) {
       insertServiceType.run(serviceType);
+    }
+    for (const resource of SEED_RESOURCES) {
+      insertResource.run(resource);
     }
   });
 

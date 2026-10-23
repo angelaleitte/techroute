@@ -10,6 +10,7 @@ const CLIENT_ERROR_CODES = new Set([
   "APPOINTMENT_NOT_FOUND",
   "TECHNICIAN_NOT_FOUND",
   "SERVICE_TYPE_NOT_FOUND",
+  "RESOURCE_NOT_FOUND",
 ]);
 
 function toHttp(result) {
@@ -31,12 +32,14 @@ export class AppointmentController {
   constructor({
     registerAppointmentService,
     updateAppointmentService,
+    allocateResourcesService,
     cancelAppointmentService,
     closeAppointmentService,
     listAppointmentsService,
   }) {
     this.registerAppointmentService = registerAppointmentService;
     this.updateAppointmentService = updateAppointmentService;
+    this.allocateResourcesService = allocateResourcesService;
     this.cancelAppointmentService = cancelAppointmentService;
     this.closeAppointmentService = closeAppointmentService;
     this.listAppointmentsService = listAppointmentsService;
@@ -50,6 +53,12 @@ export class AppointmentController {
 
   update = (request, response) => {
     const result = this.updateAppointmentService.execute(request.params.id, request.body);
+    const { status, body } = toHttp(result);
+    response.status(status).json(status === 200 ? { appointment: body } : body);
+  };
+
+  allocateResources = (request, response) => {
+    const result = this.allocateResourcesService.execute(request.params.id, request.body);
     const { status, body } = toHttp(result);
     response.status(status).json(status === 200 ? { appointment: body } : body);
   };

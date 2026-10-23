@@ -206,6 +206,7 @@ export class Appointment {
     technicianId,
     serviceTypeId,
     notes,
+    resourceIds,
     updatedAt,
   }) {
     if (!this.status.allowsChanges()) {
@@ -228,6 +229,26 @@ export class Appointment {
       technicianId: technicianId ?? this.technicianId,
       serviceTypeId: serviceTypeId ?? this.serviceTypeId,
       notes: notes ?? this.notes,
+      resourceIds: resourceIds ?? this.resourceIds,
+      updatedAt: updatedAt ?? this.updatedAt,
+    });
+  }
+
+  allocateResources(resourceIds, updatedAt) {
+    if (!this.status.allowsChanges()) {
+      return fail(
+        "APPOINTMENT_INVALID_STATE",
+        this.status.isCancelled()
+          ? "Visita cancelada não pode receber recursos."
+          : "Visita fechada não pode receber recursos.",
+      );
+    }
+
+    const normalizedResources = Array.isArray(resourceIds) ? [...resourceIds] : [];
+
+    return Appointment.create({
+      ...this.toProps(),
+      resourceIds: normalizedResources,
       updatedAt: updatedAt ?? this.updatedAt,
     });
   }

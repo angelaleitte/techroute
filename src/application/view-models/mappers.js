@@ -1,7 +1,22 @@
+import { Resource } from "../../core/entities/Resource.js";
 import { VisitStatus } from "../../core/value-objects/VisitStatus.js";
 
-export function toAppointmentViewModel(appointment, { technician, serviceType, now } = {}) {
+export function toResourceViewModel(resource) {
+  return {
+    id: resource.id,
+    name: resource.name,
+    category: resource.category,
+    categoryLabel: Resource.categoryLabel(resource.category),
+    description: resource.description,
+  };
+}
+
+export function toAppointmentViewModel(
+  appointment,
+  { technician, serviceType, resources = [], now } = {},
+) {
   const displayStatus = appointment.resolveDisplayStatus(now);
+  const resolvedResources = resources.map(toResourceViewModel);
 
   return {
     id: appointment.id,
@@ -19,6 +34,8 @@ export function toAppointmentViewModel(appointment, { technician, serviceType, n
     serviceTypeName: serviceType?.name ?? "",
     notes: appointment.notes,
     resourceIds: [...appointment.resourceIds],
+    resources: resolvedResources,
+    resourceCount: resolvedResources.length,
     status: appointment.status.value,
     displayStatus,
     statusLabel: VisitStatus.labelFor(displayStatus),
@@ -26,6 +43,7 @@ export function toAppointmentViewModel(appointment, { technician, serviceType, n
     canEdit: appointment.status.allowsChanges(),
     canCancel: appointment.status.allowsChanges(),
     canClose: appointment.status.allowsChanges(),
+    canAllocateResources: appointment.status.allowsChanges(),
     cancellationReason: appointment.cancellationReason,
     cancelledAt: appointment.cancelledAt,
     createdAt: appointment.createdAt,

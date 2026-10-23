@@ -15,3 +15,11 @@ export async function fetchServiceTypes() {
   }
   return { success: true, value: result.value.serviceTypes };
 }
+
+export async function fetchResources() {
+  const result = await request("api/resources");
+  if (!result.success) {
+    return result;
+  }
+  return { success: true, value: result.value.resources };
+}

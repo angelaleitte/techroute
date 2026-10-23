@@ -4,6 +4,7 @@ import { CancelAppointmentService } from "../../../src/application/services/Canc
 import {
   buildAppointment,
   InMemoryAppointmentRepository,
+  InMemoryResourceRepository,
   InMemoryServiceTypeRepository,
   InMemoryTechnicianRepository,
 } from "../../helpers/builders.js";
@@ -14,6 +15,7 @@ test("cancela visita e devolve view model com motivo", () => {
     appointmentRepository: new InMemoryAppointmentRepository([appointment]),
     technicianRepository: new InMemoryTechnicianRepository(),
     serviceTypeRepository: new InMemoryServiceTypeRepository(),
+    resourceRepository: new InMemoryResourceRepository(),
     now: () => new Date("2026-10-21T18:00:00.000Z"),
   });
 
@@ -32,6 +34,7 @@ test("falha quando visita não existe", () => {
     appointmentRepository: new InMemoryAppointmentRepository([]),
     technicianRepository: new InMemoryTechnicianRepository(),
     serviceTypeRepository: new InMemoryServiceTypeRepository(),
+    resourceRepository: new InMemoryResourceRepository(),
   });
 
   const result = service.execute("missing", { reason: "Motivo qualquer válido" });

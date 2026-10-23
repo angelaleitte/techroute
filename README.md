@@ -1,15 +1,17 @@
 # TechRoute | Aplicativo de Agendamento e Logística Técnica
 
 <p align="center">
-  <img src="assets/readme/00-hero-wide.png" alt="TechRoute — formulário Nova visita (tema claro)" width="920" />
+  <img src="assets/readme/00-hero-wide.png" alt="TechRoute — agenda de visitas (tema claro)" width="920" />
 </p>
 
 <p align="center">
   <strong>Agende visitas técnicas com clareza.</strong><br />
-  Data, horário, local, técnico e tipo de serviço — em uma interface responsiva, com tema claro e escuro.
+  A home é a lista de visitas; inclusão e edição abrem em <strong>modal</strong> — com tema claro e escuro.
 </p>
 
 <p align="center">
+  <img src="https://img.shields.io/badge/entreg%C3%A1veis-4-ccff00?style=flat-square&labelColor=0b0c0f" alt="4 entregáveis" />
+  <img src="https://img.shields.io/badge/atual-2.1%20Status%20e%20motivos-ccff00?style=flat-square&labelColor=0b0c0f" alt="Tarefa atual" />
   <img src="https://img.shields.io/badge/stack-HTML%20%7C%20CSS%20%7C%20JS-0b0c0f?style=flat-square" alt="Stack" />
   <img src="https://img.shields.io/badge/backend-Node.js%20%2B%20Express-0b0c0f?style=flat-square" alt="Backend" />
   <img src="https://img.shields.io/badge/banco-SQLite-0b0c0f?style=flat-square" alt="Banco" />
@@ -22,10 +24,25 @@
 ## Sobre o projeto
 
 O **TechRoute** é um aplicativo web para **agendamento de visitas técnicas** e apoio à logística de campo.  
-Foi desenvolvido como entrega de estágio, com foco em:
+Foi desenvolvido como entrega de estágio **em etapas**: o repositório evolui de forma contínua; cada tarefa/entregável marca o que já está aceito naquele marco (tag Git).
 
-- formulário completo de agendamento;
-- listagem e gestão das visitas (status, edição, cancelamento, conclusão);
+### Fluxo de inclusão (versão atual)
+
+Nesta versão, a tela inicial é a **agenda de Visitas** (cards ou tabela).  
+A **inclusão de dados** (nova visita) e a **edição / visualização** acontecem em um **modal**, sem sair da lista:
+
+1. A home lista as visitas já registradas (filtros por cliente e status, ordenação, modos card/lista).  
+2. O botão **+** (Nova visita) abre o formulário em modal.  
+3. Visualizar (olho) abre o mesmo modal em modo leitura; a partir dele é possível editar.  
+4. No formulário, o **Checklist de recursos** permite marcar materiais, ferramentas e equipamentos da visita.  
+5. Cancelar visita também usa modal (motivo obrigatório).
+
+Foco do produto:
+
+- agenda de visitas como home, com inclusão/edição em **modal**;
+- formulário completo de agendamento (cliente, contatos, local, data/hora, técnico, tipo de serviço);
+- listagem e gestão das visitas (status, visualização, edição, cancelamento, conclusão);
+- alocação de recursos (checklist no modal da visita);
 - interface responsiva (mobile → desktop);
 - temas **claro** e **escuro** com a identidade **Lime Night**;
 - backend em Node.js com persistência em **SQLite**;
@@ -33,22 +50,95 @@ Foi desenvolvido como entrega de estágio, com foco em:
 
 ---
 
+## Entregáveis
+
+O app pode estar mais avançado no código do que a tarefa oficial do momento.  
+A lista abaixo espelha o **painel de entregas do estágio** (4 entregáveis).
+
+### 1. Gerenciamento de Visitas Técnicas
+
+| Tarefa | Descrição | Status | Tag sugerida |
+|---|---|---|---|
+| **1.1** Implementação do Formulário de Agendamento | Formulário para registrar visitas com data, hora, localização do cliente, técnico designado e tipo de serviço | Submetida | `v1.1` |
+| **1.2** Alocação de Recursos | Checklist para seleção de materiais, ferramentas e equipamentos necessários para cada visita | Submetida | `v1.2` |
+
+**Critérios de aceite — 1.1**
+
+- Formulário deve capturar todas as informações necessárias para uma visita  
+- A interface do formulário deve ser responsiva  
+
+**Critérios de aceite — 1.2**
+
+- Deve armazenar corretamente os itens selecionados  
+- A checklist deve ser fácil de usar  
+
+---
+
+### 2. Gerenciamento de Status de Visita
+
+| Tarefa | Descrição | Status | Tag sugerida |
+|---|---|---|---|
+| **2.1** Atualização de Status e Motivos | Permitir atualização de status da visita com marcação de tempo, além de motivos/comentários para reagendamento ou cancelamento | Pendente | `v2.1` |
+
+**Critérios de aceite — 2.1**
+
+- Status deve ser atualizado corretamente com marcação de tempo  
+- Usuários devem poder adicionar motivos facilmente ao reagendar ou cancelar  
+
+---
+
+### 3. Notas Pós-Visita
+
+| Tarefa | Descrição | Status | Tag sugerida |
+|---|---|---|---|
+| **3.1** Campo de Observações do Técnico | Campo de texto para o técnico registrar observações após cada visita | Pendente | `v3.1` |
+
+**Critérios de aceite — 3.1**
+
+- Técnicos devem conseguir salvar as observações sem erros  
+- Observações devem ser fáceis de visualizar por supervisores  
+
+---
+
+### 4. Painel Semanal
+
+| Tarefa | Descrição | Status | Tag sugerida |
+|---|---|---|---|
+| **4.1** Sistema de Filtros do Dashboard | Filtros por técnico e status no dashboard | Pendente | `v4.1` |
+| **4.2** Implementação do Dashboard Calendário | Visão em calendário das visitas agendadas da semana atual e da próxima | Pendente | `v4.2` |
+
+**Critérios de aceite — 4.1**
+
+- Deve ser possível combinar múltiplos filtros  
+- Filtros devem funcionar corretamente e ser intuitivos  
+
+**Critérios de aceite — 4.2**
+
+- Indicadores de status coloridos devem estar presentes  
+- Deve exibir visitas agendadas de forma clara e organizada  
+
+---
+
 ## Telas
 
-### 1–2. Agendar visita — desktop (claro / escuro)
+### Home = Visitas (lista / cards)
+
+A tela principal é a **agenda**. O botão **+** abre o modal de **Nova visita**; as ações Visualizar / Concluir / Cancelar atuam sobre cada registro.
+
+### 1–2. Modal Nova visita — desktop (claro / escuro)
 
 <table>
 <tr>
 <td width="55%" valign="top">
 
-**Tema claro** — formulário principal: cliente, contatos, localização, data, horário, técnico designado, tipo de serviço e observações.
+O formulário abre em **modal** sobre a agenda: cliente, contatos, localização, data, horário, técnico, tipo de serviço, checklist de recursos e observações.
 
-**Tema escuro** — mesma experiência com accent lima, textos legíveis e superfícies escuras.
+No tema escuro, a mesma experiência com accent lima e superfícies escuras.
 
 </td>
 <td width="45%" valign="top" align="center">
 
-<img src="assets/readme/01-02-temas.gif" alt="Alternância entre tema claro e escuro — Nova visita" width="420" />
+<img src="assets/readme/01-02-temas.gif" alt="Alternância entre tema claro e escuro — modal Nova visita" width="420" />
 
 </td>
 </tr>
@@ -60,24 +150,22 @@ Foi desenvolvido como entrega de estágio, com foco em:
 <tr>
 <td width="40%" valign="top" align="center">
 
-<img src="assets/readme/04-mobile-scroll.gif" alt="Mobile — Nova visita com header fixo e rolagem" width="240" />
+<img src="assets/readme/04-mobile-scroll.gif" alt="Mobile — modal Nova visita com header fixo e rolagem" width="240" />
 
 </td>
 <td width="60%" valign="top">
 
-No mobile e tablet (&lt; 1280px), a sidebar some e a navegação passa para um **header fixo** com menu hamburger. O drawer abre por overlay, sem empurrar o conteúdo, e o botão de tema continua acessível no topo.
+No mobile e tablet (&lt; 1280px), a sidebar some e a navegação passa para um **header fixo** com menu hamburger. O drawer abre por overlay.
 
-O formulário de **Nova visita** empilha em coluna única: cliente, contatos, localização, data, horário, técnico, tipo de serviço e observações. Campos e botões respeitam alvos de toque (≥ 44px).
+A home continua sendo a lista de visitas. O modal de **Nova visita** ocupa a tela com formulário em coluna única (alvos de toque ≥ 44px).
 
-Ao rolar a tela, o fluxo completo fica visível — do preenchimento até o CTA *Registrar visita* e a seção **Agenda**. Layout fluido, sem barra de rolagem horizontal.
+Layout fluido, sem barra de rolagem horizontal.
 
 </td>
 </tr>
 </table>
 
-### 4. Visitas registradas
-
-Após o registro, a visita aparece na agenda com tipo de serviço, data/hora, cliente, contatos, local, técnico e **status**.
+### 4. Campos do modal (visita)
 
 | Campo do formulário | O que registra |
 |---|---|
@@ -88,24 +176,60 @@ Após o registro, a visita aparece na agenda com tipo de serviço, data/hora, cl
 | Data + Horário | Slot da visita |
 | Técnico designado | Responsável em campo |
 | Tipo de serviço | Instalação, Manutenção, Reparo ou Vistoria |
+| Checklist de recursos | Materiais, ferramentas e equipamentos (opcional) |
 | Observações | Notas opcionais |
 
 ---
 
 ## Funcionalidades
 
-- **Nova visita** com validação de campos obrigatórios e contatos (telefone, telefone secundário, e-mail)  
-- **Tipos de serviço** em cards selecionáveis (com ícones)  
-- **Select de técnicos** alinhado ao design system  
-- **Agenda** com visitas salvas no banco, em modo **card** ou **lista**  
-- **Status da visita** — Aberta · Atrasada · Fechada · Cancelada (badges no card/lista)  
-- **Ações na visita** — Alterar · Concluir · Cancelar (com motivo)  
-- **Filtros** por status e ordenação A–Z / Z–A  
-- **Tema claro / escuro** persistido no navegador  
-- **Sidebar desktop** expansível / colapsável  
-- **Header mobile** fixo + drawer de navegação  
-- **Tooltips** do Lime Night (`.ds-tooltip`) em ícones e atalhos — sem `title=""` nativo  
-- Layout fluido (mobile-first: 375 → 768 → 1280 → 1920)
+### Agenda (tela inicial)
+
+- A home do app é a lista de **Visitas**, não uma página separada de formulário.  
+- Exibe contador de registros (ou “X de Y” quando há filtro ativo).  
+- Empty state quando não há visitas ou quando o filtro não retorna resultados.  
+- Alternância entre visão **card** e **lista** (tabela responsiva).  
+- Ordenação do cliente **A–Z** / **Z–A**.
+
+### Inclusão e edição em modal
+
+- Botão **+ Nova visita** abre o formulário em **modal** sobre a agenda.  
+- **Visualizar** abre o mesmo modal em modo leitura; a partir dele é possível **editar**.  
+- O modal captura: cliente, telefones, e-mail, localização, data, horário, técnico, tipo de serviço, recursos e observações.  
+- Validação de campos obrigatórios e formato de contatos antes de salvar.  
+- Persistência imediata na API / SQLite; a lista atualiza ao fechar o modal com sucesso.
+
+### Checklist de recursos
+
+- No modal da visita, seção **Checklist de recursos** (materiais, ferramentas, equipamentos).  
+- Itens vindos do catálogo `resources` (seed); seleção múltipla.  
+- Vínculos gravados na tabela de junção `appointment_resources` (N:N com FKs).
+
+### Filtros da agenda
+
+- **Cliente por nome** — dropdown pesquisável (estilo Select2): digite para filtrar a lista de clientes únicos e selecione um.  
+- **Status** — Todos · Abertas · Atrasadas · Fechadas · Canceladas.  
+- Filtros combináveis; clique fora ou Escape fecha o painel do filtro de cliente.
+
+### Status e ações da visita
+
+- Status exibido com badges: **Aberta**, **Atrasada**, **Fechada**, **Cancelada**.  
+- **Concluir** fecha a visita (quando permitido pelo domínio).  
+- **Cancelar** abre modal pedindo **motivo**; registra motivo e timestamp.  
+- Visitas canceladas mostram o motivo na visualização.
+
+### Catálogos do formulário
+
+- **Tipos de serviço** em cards selecionáveis com ícones (Instalação, Manutenção, Reparo, Vistoria).  
+- **Técnicos** em select alinhado ao design system (apenas ativos do seed/catálogo).
+
+### Interface e experiência
+
+- Temas **claro** e **escuro** (Lime Night), preferência salva no navegador.  
+- **Sidebar** no desktop (expansível / colapsável); some no mobile/tablet (&lt; 1280px).  
+- **Header mobile** fixo + drawer de navegação por overlay.  
+- **Tooltips** do design system (`.ds-tooltip`) em atalhos e ícones — sem `title=""` nativo.  
+- Layout fluido mobile-first (375 → 768 → 1280 → 1920), alvos de toque ≥ 44px.
 
 ---
 
@@ -134,23 +258,27 @@ Schema e seed: `src/infrastructure/data/schema.js` e `seed.js`.
 |---|---|
 | `technicians` | Catálogo de técnicos (seed) |
 | `service_types` | Catálogo de tipos de serviço (seed) |
+| `resources` | Catálogo de materiais, ferramentas e equipamentos (seed) |
 | `appointments` | Visitas agendadas (entidade principal) |
+| `appointment_resources` | Junção N:N entre visita e recurso (`appointment_id` + `resource_id`) |
 
 ### Esquema visual (resumo)
 
 <p align="center">
-  <img src="assets/readme/05-db-schema.png" alt="Diagrama ER TechRoute — technicians e service_types (1) para appointments (N)" width="920" />
+  <img src="assets/readme/05-db-schema.png" alt="Diagrama ER TechRoute — technicians, service_types, resources, appointments e appointment_resources" width="920" />
 </p>
 
 ### Cardinalidade
 
 | Relação | Tipo | Regra |
 |---|---|---|
-| `technicians` → `appointments` | 1:N | Um técnico pode ter várias visitas |
-| `service_types` → `appointments` | 1:N | Um tipo classifica várias visitas |
-| `appointments` → técnico / tipo | N:1 | Toda visita referencia um técnico e um tipo |
+| `technicians` → `appointments` | 1:N | Um técnico pode ter várias visitas (`technician_id` FK) |
+| `service_types` → `appointments` | 1:N | Um tipo classifica várias visitas (`service_type_id` FK) |
+| `appointments` → `appointment_resources` | 1:N | Uma visita pode ter vários vínculos de recurso |
+| `resources` → `appointment_resources` | 1:N | Um recurso pode estar em várias visitas |
+| `resources` ↔ `appointments` | N:N | Via tabela de junção `appointment_resources` (FKs + PK composta) |
 
-Integridade referencial via `FOREIGN KEY` no schema SQLite.
+Integridade referencial via `FOREIGN KEY` no SQLite (técnico, tipo, visita↔recurso).
 
 ---
 
@@ -173,7 +301,7 @@ npm start
 | `npm run dev` | Sobe com `--watch` (reinicia ao salvar) |
 | `npm test` | Roda os testes do domínio / casos de uso |
 
-> O banco SQLite é criado automaticamente em `data/techroute.db` na primeira execução, com seed de técnicos e tipos de serviço.
+> O banco SQLite é criado automaticamente em `data/techroute.db` na primeira execução, com seed de técnicos, tipos de serviço e recursos.
 
 ---
 
@@ -181,15 +309,31 @@ npm start
 
 ```text
 /
-├── public/                 # Interface (HTML, CSS, JS)
+├── public/                          # Interface (HTML, CSS, JS)
+│   ├── css/layout.css
+│   ├── design-system/               # Tokens e componentes Lime Night (cópia para runtime)
+│   ├── index.html
+│   └── js/
+│       ├── api/                     # HTTP, appointments, catalog
+│       ├── components/              # app-shell, field, banner, ícones
+│       └── pages/schedule-form.js   # Home Visitas + modais
 ├── src/
-│   ├── core/               # Entidades, value objects, Result
-│   ├── application/        # Casos de uso
-│   ├── infrastructure/     # SQLite, schema, seed, repositórios
-│   └── api/                # Express, controllers, composition
-├── assets/readme/          # Imagens do README
-├── tests/                  # Testes automatizados
-├── data/                   # Banco local (arquivos .db ignorados no git)
+│   ├── core/
+│   │   ├── entities/                # Appointment, Technician, ServiceType, Resource
+│   │   ├── value-objects/
+│   │   ├── repositories/contracts.js
+│   │   └── common/Result.js
+│   ├── application/
+│   │   ├── services/                # Register, Update, Cancel, Close, Allocate, List…
+│   │   ├── input-models/
+│   │   └── view-models/
+│   ├── infrastructure/
+│   │   ├── data/                    # connection, schema, seed
+│   │   └── repositories/            # Sqlite* (incl. SqliteResourceRepository)
+│   └── api/                         # Express, controllers, composition
+├── tests/                           # Domínio e casos de uso (incl. AllocateResources)
+├── assets/readme/                   # Imagens do README publicado
+├── data/                            # Banco local (.db ignorado no git)
 └── package.json
 ```
 
@@ -206,28 +350,6 @@ Identidade visual **Lime Night**:
 - **Tooltips:** `.ds-tooltip` + variantes de cor/posição — dicas de UI nunca usam `title=""`.
 
 Catálogo e demo do design system ficam em `docs/design-system/` (quando a pasta de docs estiver disponível no ambiente de desenvolvimento).
-
----
-
-## Critérios de aceite
-
-- [x] Captura data e horário da visita  
-- [x] Captura localização e contatos do cliente  
-- [x] Atribui técnico responsável  
-- [x] Define tipo de serviço  
-- [x] Interface responsiva  
-- [x] Persistência das visitas  
-- [x] Status, edição, conclusão e cancelamento  
-- [x] Filtros e modos card/lista na agenda  
-- [x] Tooltips do Design System  
-
----
-
-## Próximas entregas
-
-- Alocação de recursos (checklist por visita — coluna `resource_ids` já preparada)  
-- Evolução da logística / rotas  
-- Deploy
 
 ---
 

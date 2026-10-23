@@ -3,8 +3,10 @@ import { test } from "node:test";
 import { RegisterAppointmentService } from "../../../src/application/services/RegisterAppointmentService.js";
 import {
   InMemoryAppointmentRepository,
+  InMemoryResourceRepository,
   InMemoryServiceTypeRepository,
   InMemoryTechnicianRepository,
+  buildResource,
   buildTechnician,
 } from "../../helpers/builders.js";
 
@@ -13,6 +15,7 @@ function createService(overrides = {}) {
     appointmentRepository: new InMemoryAppointmentRepository(),
     technicianRepository: new InMemoryTechnicianRepository(),
     serviceTypeRepository: new InMemoryServiceTypeRepository(),
+    resourceRepository: new InMemoryResourceRepository(),
     now: () => new Date("2026-10-21T16:00:00.000Z"),
     createId: () => "apt-test-1",
     ...overrides,
@@ -69,4 +72,36 @@ test("falha quando o endereço é curto demais", () => {
 
   assert.equal(result.success, false);
   assert.equal(result.error.code, "INVALID_LOCATION");
+});
+
+test("registra visita com recursos alocados", () => {
+  const escada = buildResource({
+    id: "res-escada",
+    name: "Escada telescópica",
+    category: "equipamento",
+  });
+  const service = createService({
+    resourceRepository: new InMemoryResourceRepository([buildResource(), escada]),
+  });
+
+  const result = service.execute({
+    ...validInput,
+    resourceIds: ["res-multimetro", "res-escada"],
+  });
+
+  assert.equal(result.success, true);
+  assert.deepEqual(result.value.resourceIds, ["res-multimetro", "res-escada"]);
+  assert.equal(result.value.resourceCount, 2);
+  assert.equal(result.value.resources[0].name, "Multímetro");
+});
+
+test("falha quando o recurso não existe", () => {
+  const service = createService();
+  const result = service.execute({
+    ...validInput,
+    resourceIds: ["res-inexistente"],
+  });
+
+  assert.equal(result.success, false);
+  assert.equal(result.error.code, "RESOURCE_NOT_FOUND");
 });

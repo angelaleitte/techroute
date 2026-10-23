@@ -1,4 +1,5 @@
 import { Appointment } from "../../src/core/entities/Appointment.js";
+import { Resource } from "../../src/core/entities/Resource.js";
 import { ServiceType } from "../../src/core/entities/ServiceType.js";
 import { Technician } from "../../src/core/entities/Technician.js";
 import { ClientLocation } from "../../src/core/value-objects/ClientLocation.js";
@@ -19,6 +20,16 @@ export function buildServiceType(overrides = {}) {
     id: "svc-instalacao",
     name: "Instalação",
     description: "Instalação de equipamentos",
+    ...overrides,
+  });
+}
+
+export function buildResource(overrides = {}) {
+  return new Resource({
+    id: "res-multimetro",
+    name: "Multímetro",
+    category: "ferramenta",
+    description: "Medição elétrica e continuidade",
     ...overrides,
   });
 }
@@ -93,6 +104,25 @@ export class InMemoryServiceTypeRepository {
 
   findById(id) {
     return this.items.find((item) => item.id === id) ?? null;
+  }
+
+  listAll() {
+    return [...this.items];
+  }
+}
+
+export class InMemoryResourceRepository {
+  constructor(items = [buildResource()]) {
+    this.items = [...items];
+  }
+
+  findById(id) {
+    return this.items.find((item) => item.id === id) ?? null;
+  }
+
+  findByIds(ids = []) {
+    const wanted = new Set(ids);
+    return this.items.filter((item) => wanted.has(item.id));
   }
 
   listAll() {

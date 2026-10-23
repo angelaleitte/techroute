@@ -12,4 +12,9 @@ export class CatalogController {
     const result = this.listCatalogService.listServiceTypes();
     response.status(200).json({ serviceTypes: result.value });
   };
+
+  resources = (_request, response) => {
+    const result = this.listCatalogService.listResources();
+    response.status(200).json({ resources: result.value });
+  };
 }

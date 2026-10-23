@@ -1,3 +1,5 @@
+import { normalizeResourceIds } from "./normalizeResourceIds.js";
+
 export function normalizeRegisterAppointmentInput(raw = {}) {
   return {
     clientName: String(raw.clientName ?? "").trim(),
@@ -10,5 +12,6 @@ export function normalizeRegisterAppointmentInput(raw = {}) {
     technicianId: String(raw.technicianId ?? "").trim(),
     serviceTypeId: String(raw.serviceTypeId ?? "").trim(),
     notes: String(raw.notes ?? "").trim(),
+    resourceIds: normalizeResourceIds(raw.resourceIds),
   };
 }

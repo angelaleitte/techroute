@@ -38,7 +38,16 @@ function optionLabel(option) {
   return `${option.name}${option.specialty ? ` — ${option.specialty}` : ""}`;
 }
 
-export function renderSelectField({ id, label, options, value, error, placeholder, required }) {
+export function renderSelectField({
+  id,
+  label,
+  options,
+  value,
+  error,
+  placeholder,
+  required,
+  disabled = false,
+}) {
   const placeholderText = placeholder || "Selecione";
   const selected = options.find((option) => option.id === value);
   const display = selected ? optionLabel(selected) : placeholderText;
@@ -88,13 +97,14 @@ export function renderSelectField({ id, label, options, value, error, placeholde
     label,
     error,
     controlHtml: `
-      <div class="app-select-wrap" data-custom-select>
+      <div class="app-select-wrap${disabled ? " is-disabled" : ""}" data-custom-select>
         <select
           class="app-select-native"
           name="${escapeHtml(id)}"
           tabindex="-1"
           aria-hidden="true"
           ${required ? "required" : ""}
+          ${disabled ? "disabled" : ""}
         >${nativeOptions}</select>
         <button
           class="ds-input app-select__trigger"
@@ -106,6 +116,7 @@ export function renderSelectField({ id, label, options, value, error, placeholde
           aria-controls="${escapeHtml(listId)}"
           ${error ? 'aria-invalid="true"' : ""}
           ${required ? 'aria-required="true"' : ""}
+          ${disabled ? "disabled" : ""}
         >
           <span class="app-select__value${selected ? "" : " is-placeholder"}">${escapeHtml(display)}</span>
         </button>
@@ -272,11 +283,11 @@ export function bindSelectFields(root) {
   }
 }
 
-export function renderOptionGroup({ name, legend, options, value, error }) {
+export function renderOptionGroup({ name, legend, options, value, error, disabled = false }) {
   const errorId = `${name}-error`;
 
   return `
-    <fieldset class="ds-field" data-field="${escapeHtml(name)}">
+    <fieldset class="ds-field" data-field="${escapeHtml(name)}" ${disabled ? "disabled" : ""}>
       <legend class="ds-field__label">${escapeHtml(legend)}</legend>
       <div class="ds-list" role="radiogroup" aria-label="${escapeHtml(legend)}" ${error ? `aria-describedby="${errorId}"` : ""}>
         ${options
@@ -289,6 +300,7 @@ export function renderOptionGroup({ name, legend, options, value, error }) {
                 name="${escapeHtml(name)}"
                 data-value="${escapeHtml(option.id)}"
                 aria-checked="${option.id === value ? "true" : "false"}"
+                ${disabled ? "disabled" : ""}
               >
                 <span class="ds-icon-tile">
                   ${serviceTypeIcon(option)}
@@ -305,6 +317,82 @@ export function renderOptionGroup({ name, legend, options, value, error }) {
               </button>
             `,
           )
+          .join("")}
+      </div>
+      ${error ? `<p class="ds-field__error" id="${errorId}">${escapeHtml(error)}</p>` : ""}
+    </fieldset>
+  `;
+}
+
+export function renderChecklistGroup({
+  name,
+  legend,
+  hint = "",
+  options = [],
+  selectedIds = [],
+  error = "",
+  disabled = false,
+}) {
+  const errorId = `${name}-error`;
+  const hintId = `${name}-hint`;
+  const selected = new Set(selectedIds);
+  const describedBy = [hint ? hintId : "", error ? errorId : ""].filter(Boolean).join(" ");
+
+  const categories = [];
+  const byCategory = new Map();
+
+  for (const option of options) {
+    const category = option.category || "outro";
+    if (!byCategory.has(category)) {
+      byCategory.set(category, []);
+      categories.push(category);
+    }
+    byCategory.get(category).push(option);
+  }
+
+  return `
+    <fieldset class="ds-field app-resource-checklist" data-field="${escapeHtml(name)}" ${disabled ? "disabled" : ""}>
+      <legend class="ds-field__label">${escapeHtml(legend)}</legend>
+      ${hint ? `<p class="ds-field__hint" id="${hintId}">${escapeHtml(hint)}</p>` : ""}
+      <div class="app-resource-groups" ${describedBy ? `aria-describedby="${describedBy}"` : ""}>
+        ${categories
+          .map((category) => {
+            const items = byCategory.get(category) || [];
+            const label = items[0]?.categoryLabel || category;
+            return `
+              <div class="app-resource-group">
+                <h3 class="app-resource-group__title">${escapeHtml(label)}</h3>
+                <div class="ds-checklist" role="group" aria-label="${escapeHtml(label)}">
+                  ${items
+                    .map((option) => {
+                      const checked = selected.has(option.id);
+                      return `
+                        <button
+                          class="ds-option app-resource-option${checked ? " is-selected" : ""}"
+                          type="button"
+                          role="checkbox"
+                          data-checklist="${escapeHtml(name)}"
+                          data-value="${escapeHtml(option.id)}"
+                          aria-checked="${checked ? "true" : "false"}"
+                          ${disabled ? "disabled" : ""}
+                        >
+                          <span class="ds-check${checked ? " is-checked" : ""}" aria-hidden="true">
+                            <svg class="ds-icon ds-icon--sm" viewBox="0 0 24 24">
+                              <path d="m5 12 5 5 9-9"></path>
+                            </svg>
+                          </span>
+                          <span class="ds-option__body">
+                            <span class="ds-option__title">${escapeHtml(option.name)}</span>
+                            <span class="ds-option__sub">${escapeHtml(option.description || "")}</span>
+                          </span>
+                        </button>
+                      `;
+                    })
+                    .join("")}
+                </div>
+              </div>
+            `;
+          })
           .join("")}
       </div>
       ${error ? `<p class="ds-field__error" id="${errorId}">${escapeHtml(error)}</p>` : ""}

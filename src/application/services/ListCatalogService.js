@@ -1,10 +1,15 @@
 import { ok } from "../../core/common/Result.js";
-import { toServiceTypeViewModel, toTechnicianViewModel } from "../view-models/mappers.js";
+import {
+  toResourceViewModel,
+  toServiceTypeViewModel,
+  toTechnicianViewModel,
+} from "../view-models/mappers.js";
 
 export class ListCatalogService {
-  constructor({ technicianRepository, serviceTypeRepository }) {
+  constructor({ technicianRepository, serviceTypeRepository, resourceRepository }) {
     this.technicianRepository = technicianRepository;
     this.serviceTypeRepository = serviceTypeRepository;
+    this.resourceRepository = resourceRepository;
   }
 
   listTechnicians() {
@@ -13,5 +18,9 @@ export class ListCatalogService {
 
   listServiceTypes() {
     return ok(this.serviceTypeRepository.listAll().map(toServiceTypeViewModel));
+  }
+
+  listResources() {
+    return ok(this.resourceRepository.listAll().map(toResourceViewModel));
   }
 }

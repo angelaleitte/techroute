@@ -10,6 +10,12 @@ export const SCHEMA_STATEMENTS = [
     name TEXT NOT NULL,
     description TEXT NOT NULL DEFAULT ''
   )`,
+  `CREATE TABLE IF NOT EXISTS resources (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    category TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT ''
+  )`,
   `CREATE TABLE IF NOT EXISTS appointments (
     id TEXT PRIMARY KEY,
     client_name TEXT NOT NULL,
@@ -22,7 +28,6 @@ export const SCHEMA_STATEMENTS = [
     technician_id TEXT NOT NULL,
     service_type_id TEXT NOT NULL,
     notes TEXT NOT NULL DEFAULT '',
-    resource_ids TEXT NOT NULL DEFAULT '[]',
     status TEXT NOT NULL DEFAULT 'open',
     cancellation_reason TEXT NOT NULL DEFAULT '',
     cancelled_at TEXT,
@@ -31,6 +36,15 @@ export const SCHEMA_STATEMENTS = [
     FOREIGN KEY (technician_id) REFERENCES technicians(id),
     FOREIGN KEY (service_type_id) REFERENCES service_types(id)
   )`,
+  `CREATE TABLE IF NOT EXISTS appointment_resources (
+    appointment_id TEXT NOT NULL,
+    resource_id TEXT NOT NULL,
+    PRIMARY KEY (appointment_id, resource_id),
+    FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE CASCADE,
+    FOREIGN KEY (resource_id) REFERENCES resources(id)
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_appointment_resources_resource
+    ON appointment_resources (resource_id)`,
 ];
 
 const APPOINTMENT_MIGRATIONS = [
@@ -49,14 +63,58 @@ const APPOINTMENT_MIGRATIONS = [
   { column: "email", sql: "ALTER TABLE appointments ADD COLUMN email TEXT NOT NULL DEFAULT ''" },
 ];
 
+function listAppointmentColumns(db) {
+  return new Set(db.prepare("PRAGMA table_info(appointments)").all().map((row) => row.name));
+}
+
+function parseLegacyResourceIds(raw) {
+  try {
+    const parsed = JSON.parse(raw || "[]");
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+    return [...new Set(parsed.map((id) => String(id).trim()).filter(Boolean))];
+  } catch {
+    return [];
+  }
+}
+
+function migrateResourceIdsToJunction(db) {
+  const columns = listAppointmentColumns(db);
+  if (!columns.has("resource_ids")) {
+    return;
+  }
+
+  const insertLink = db.prepare(`
+    INSERT OR IGNORE INTO appointment_resources (appointment_id, resource_id)
+    VALUES (?, ?)
+  `);
+  const rows = db.prepare("SELECT id, resource_ids FROM appointments").all();
+
+  const migrate = db.transaction(() => {
+    for (const row of rows) {
+      for (const resourceId of parseLegacyResourceIds(row.resource_ids)) {
+        const exists = db.prepare("SELECT 1 FROM resources WHERE id = ?").get(resourceId);
+        if (exists) {
+          insertLink.run(row.id, resourceId);
+        }
+      }
+    }
+
+    db.exec("ALTER TABLE appointments DROP COLUMN resource_ids");
+  });
+
+  migrate();
+}
+
 export function migrateAppointmentsSchema(db) {
-  const columns = new Set(
-    db.prepare("PRAGMA table_info(appointments)").all().map((row) => row.name),
-  );
+  const columns = listAppointmentColumns(db);
 
   for (const migration of APPOINTMENT_MIGRATIONS) {
     if (!columns.has(migration.column)) {
       db.exec(migration.sql);
     }
   }
+
+  migrateResourceIdsToJunction(db);
 }
