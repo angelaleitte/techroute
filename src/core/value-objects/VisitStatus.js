@@ -4,19 +4,25 @@ export const VISIT_STATUS = Object.freeze({
   OPEN: "open",
   CLOSED: "closed",
   CANCELLED: "cancelled",
+  REOPENED: "reopened",
+  REBOOKED: "rebooked",
 });
 
 const LABELS = Object.freeze({
   open: "Aberta",
   closed: "Fechada",
   cancelled: "Cancelada",
+  reopened: "Reaberta",
+  rebooked: "Remarcada",
   late: "Atrasada",
 });
 
 const BADGES = Object.freeze({
   open: "ds-badge--info",
-  closed: "ds-badge--success",
+  closed: "ds-badge--closed",
   cancelled: "ds-badge--danger",
+  reopened: "ds-badge--info",
+  rebooked: "ds-badge--info",
   late: "ds-badge--warning",
 });
 
@@ -66,7 +72,19 @@ export class VisitStatus {
     return this.value === VISIT_STATUS.CANCELLED;
   }
 
+  isReopened() {
+    return this.value === VISIT_STATUS.REOPENED;
+  }
+
+  isRebooked() {
+    return this.value === VISIT_STATUS.REBOOKED;
+  }
+
   allowsChanges() {
-    return this.isOpen();
+    return this.isOpen() || this.isReopened() || this.isRebooked();
+  }
+
+  canReopen() {
+    return this.isCancelled() || this.isClosed();
   }
 }

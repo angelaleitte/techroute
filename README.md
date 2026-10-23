@@ -1,7 +1,7 @@
 # TechRoute | Aplicativo de Agendamento e Logística Técnica
 
 <p align="center">
-  <img src="assets/readme/00-hero-wide.png" alt="TechRoute — agenda de visitas (tema claro)" width="920" />
+  <img src="assets/readme/00-hero-wide.png" alt="TechRoute — agenda de visitas com status e filtros (tema claro)" width="920" />
 </p>
 
 <p align="center">
@@ -11,7 +11,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/entreg%C3%A1veis-4-ccff00?style=flat-square&labelColor=0b0c0f" alt="4 entregáveis" />
-  <img src="https://img.shields.io/badge/atual-2.1%20Status%20e%20motivos-ccff00?style=flat-square&labelColor=0b0c0f" alt="Tarefa atual" />
+  <img src="https://img.shields.io/badge/atual-3.1%20Notas%20p%C3%B3s--visita-ccff00?style=flat-square&labelColor=0b0c0f" alt="Tarefa atual" />
   <img src="https://img.shields.io/badge/stack-HTML%20%7C%20CSS%20%7C%20JS-0b0c0f?style=flat-square" alt="Stack" />
   <img src="https://img.shields.io/badge/backend-Node.js%20%2B%20Express-0b0c0f?style=flat-square" alt="Backend" />
   <img src="https://img.shields.io/badge/banco-SQLite-0b0c0f?style=flat-square" alt="Banco" />
@@ -35,13 +35,13 @@ A **inclusão de dados** (nova visita) e a **edição / visualização** acontec
 2. O botão **+** (Nova visita) abre o formulário em modal.  
 3. Visualizar (olho) abre o mesmo modal em modo leitura; a partir dele é possível editar.  
 4. No formulário, o **Checklist de recursos** permite marcar materiais, ferramentas e equipamentos da visita.  
-5. Cancelar visita também usa modal (motivo obrigatório).
+5. Cancelar ou **Reagendar** visita também usam modal (motivo obrigatório).
 
 Foco do produto:
 
 - agenda de visitas como home, com inclusão/edição em **modal**;
 - formulário completo de agendamento (cliente, contatos, local, data/hora, técnico, tipo de serviço);
-- listagem e gestão das visitas (status, visualização, edição, cancelamento, conclusão);
+- listagem e gestão das visitas (status, visualização, edição, reagendamento, cancelamento, conclusão);
 - alocação de recursos (checklist no modal da visita);
 - interface responsiva (mobile → desktop);
 - temas **claro** e **escuro** com a identidade **Lime Night**;
@@ -78,7 +78,7 @@ A lista abaixo espelha o **painel de entregas do estágio** (4 entregáveis).
 
 | Tarefa | Descrição | Status | Tag sugerida |
 |---|---|---|---|
-| **2.1** Atualização de Status e Motivos | Permitir atualização de status da visita com marcação de tempo, além de motivos/comentários para reagendamento ou cancelamento | Pendente | `v2.1` |
+| **2.1** Atualização de Status e Motivos | Permitir atualização de status da visita com marcação de tempo, além de motivos/comentários para reagendamento ou cancelamento | Submetida | `v2.1` |
 
 **Critérios de aceite — 2.1**
 
@@ -123,7 +123,7 @@ A lista abaixo espelha o **painel de entregas do estágio** (4 entregáveis).
 
 ### Home = Visitas (lista / cards)
 
-A tela principal é a **agenda**. O botão **+** abre o modal de **Nova visita**; as ações Visualizar / Concluir / Cancelar atuam sobre cada registro.
+A tela principal é a **agenda**. O botão **+** abre o modal de **Nova visita**; as ações Visualizar / Reagendar / Concluir / Cancelar atuam sobre cada registro.
 
 ### 1–2. Modal Nova visita — desktop (claro / escuro)
 
@@ -208,15 +208,18 @@ Layout fluido, sem barra de rolagem horizontal.
 ### Filtros da agenda
 
 - **Cliente por nome** — dropdown pesquisável (estilo Select2): digite para filtrar a lista de clientes únicos e selecione um.  
-- **Status** — Todos · Abertas · Atrasadas · Fechadas · Canceladas.  
+- **Status** — Todos · Abertas · Reabertas · Remarcadas · Atrasadas · Fechadas · Canceladas.  
 - Filtros combináveis; clique fora ou Escape fecha o painel do filtro de cliente.
 
 ### Status e ações da visita
 
-- Status exibido com badges: **Aberta**, **Atrasada**, **Fechada**, **Cancelada**.  
+- Status exibido com badges: **Aberta**, **Reaberta**, **Remarcada**, **Atrasada**, **Fechada**, **Cancelada**.  
+- **Reagendar** abre modal com nova data/horário e **motivo** obrigatório; o evento entra no histórico.  
 - **Concluir** fecha a visita (quando permitido pelo domínio).  
 - **Cancelar** abre modal pedindo **motivo**; registra motivo e timestamp.  
-- Visitas canceladas mostram o motivo na visualização.
+- **Reabrir**: visita **cancelada** → status **Remarcada**; visita **fechada** → status **Reaberta** (motivo obrigatório; histórico preservado).  
+- Em **Visualizar**, a seção **Histórico** lista criação, reagendamentos, cancelamento, reabertura e conclusão com timestamps.  
+- Visitas canceladas também mostram o motivo na listagem em cards.
 
 ### Catálogos do formulário
 

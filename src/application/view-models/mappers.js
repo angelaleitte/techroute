@@ -1,5 +1,52 @@
+import { AppointmentEvent } from "../../core/entities/AppointmentEvent.js";
 import { Resource } from "../../core/entities/Resource.js";
 import { VisitStatus } from "../../core/value-objects/VisitStatus.js";
+
+function formatSlotLabel(date, time) {
+  if (!date || !time) {
+    return "";
+  }
+  const [year, month, day] = String(date).split("-");
+  if (!year || !month || !day) {
+    return `${date} às ${time}`;
+  }
+  return `${day}/${month}/${year} às ${time}`;
+}
+
+function formatDateTimeLabel(iso) {
+  if (!iso) {
+    return "";
+  }
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return String(iso);
+  }
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(date);
+}
+
+export function toAppointmentEventViewModel(event) {
+  const fromSlotLabel = formatSlotLabel(event.fromDate, event.fromTime);
+  const toSlotLabel = formatSlotLabel(event.toDate, event.toTime);
+
+  return {
+    id: event.id,
+    eventType: event.eventType,
+    eventTypeLabel: AppointmentEvent.labelFor(event.eventType),
+    eventTypeBadgeClass: AppointmentEvent.badgeClassFor(event.eventType),
+    reason: event.reason || "",
+    fromDate: event.fromDate,
+    fromTime: event.fromTime,
+    toDate: event.toDate,
+    toTime: event.toTime,
+    fromSlotLabel,
+    toSlotLabel,
+    createdAt: event.createdAt,
+    createdAtLabel: formatDateTimeLabel(event.createdAt),
+  };
+}
 
 export function toResourceViewModel(resource) {
   return {
@@ -13,10 +60,13 @@ export function toResourceViewModel(resource) {
 
 export function toAppointmentViewModel(
   appointment,
-  { technician, serviceType, resources = [], now } = {},
+  { technician, serviceType, resources = [], events = [], now } = {},
 ) {
   const displayStatus = appointment.resolveDisplayStatus(now);
   const resolvedResources = resources.map(toResourceViewModel);
+  const canChange = appointment.status.allowsChanges();
+  const canReopen = appointment.status.canReopen();
+  const resolvedEvents = events.map(toAppointmentEventViewModel);
 
   return {
     id: appointment.id,
@@ -40,12 +90,17 @@ export function toAppointmentViewModel(
     displayStatus,
     statusLabel: VisitStatus.labelFor(displayStatus),
     statusBadgeClass: VisitStatus.badgeClassFor(displayStatus),
-    canEdit: appointment.status.allowsChanges(),
-    canCancel: appointment.status.allowsChanges(),
-    canClose: appointment.status.allowsChanges(),
-    canAllocateResources: appointment.status.allowsChanges(),
+    canEdit: canChange,
+    canCancel: canChange,
+    canClose: canChange,
+    canReschedule: canChange,
+    canReopen,
+    canAllocateResources: canChange,
     cancellationReason: appointment.cancellationReason,
     cancelledAt: appointment.cancelledAt,
+    rescheduleReason: appointment.rescheduleReason,
+    rescheduledAt: appointment.rescheduledAt,
+    events: resolvedEvents,
     createdAt: appointment.createdAt,
     updatedAt: appointment.updatedAt,
   };

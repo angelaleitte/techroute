@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { fail, ok } from "../../core/common/Result.js";
 import { Appointment } from "../../core/entities/Appointment.js";
+import {
+  APPOINTMENT_EVENT_TYPE,
+  AppointmentEvent,
+} from "../../core/entities/AppointmentEvent.js";
 import { ClientLocation } from "../../core/value-objects/ClientLocation.js";
 import { EmailAddress } from "../../core/value-objects/EmailAddress.js";
 import { PhoneNumber } from "../../core/value-objects/PhoneNumber.js";
@@ -112,12 +116,28 @@ export class RegisterAppointmentService {
       return appointmentResult;
     }
 
-    const saved = this.appointmentRepository.save(appointmentResult.value);
+    const appointment = appointmentResult.value;
+    const createdEvent = new AppointmentEvent({
+      id: this.createId(),
+      appointmentId: appointment.id,
+      eventType: APPOINTMENT_EVENT_TYPE.CREATED,
+      reason: "",
+      fromDate: null,
+      fromTime: null,
+      toDate: appointment.slot.date,
+      toTime: appointment.slot.time,
+      createdAt: appointment.createdAt,
+    });
+
+    const saved = this.appointmentRepository.save(appointment, createdEvent);
+    const events = this.appointmentRepository.listEventsByAppointmentId(saved.id);
+
     return ok(
       toAppointmentViewModel(saved, {
         technician,
         serviceType,
         resources,
+        events,
         now: this.now(),
       }),
     );

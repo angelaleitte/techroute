@@ -4,6 +4,8 @@ import { CloseAppointmentService } from "../application/services/CloseAppointmen
 import { ListAppointmentsService } from "../application/services/ListAppointmentsService.js";
 import { ListCatalogService } from "../application/services/ListCatalogService.js";
 import { RegisterAppointmentService } from "../application/services/RegisterAppointmentService.js";
+import { ReopenAppointmentService } from "../application/services/ReopenAppointmentService.js";
+import { RescheduleAppointmentService } from "../application/services/RescheduleAppointmentService.js";
 import { UpdateAppointmentService } from "../application/services/UpdateAppointmentService.js";
 import { createConnection } from "../infrastructure/data/connection.js";
 import { SqliteAppointmentRepository } from "../infrastructure/repositories/SqliteAppointmentRepository.js";
@@ -32,6 +34,8 @@ export function composeApp(rootDir) {
     allocateResourcesService: new AllocateResourcesService(shared),
     cancelAppointmentService: new CancelAppointmentService(shared),
     closeAppointmentService: new CloseAppointmentService(shared),
+    rescheduleAppointmentService: new RescheduleAppointmentService(shared),
+    reopenAppointmentService: new ReopenAppointmentService(shared),
     listCatalogService: new ListCatalogService({
       technicianRepository,
       serviceTypeRepository,

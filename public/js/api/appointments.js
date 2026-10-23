@@ -52,9 +52,36 @@ export async function cancelAppointment(id, reason) {
   return { success: true, value: result.value.appointment };
 }
 
-export async function closeAppointment(id) {
+export async function closeAppointment(id, notes = "") {
   const result = await request(`api/appointments/${encodeURIComponent(id)}/close`, {
     method: "POST",
+    body: { notes },
+  });
+
+  if (!result.success) {
+    return result;
+  }
+
+  return { success: true, value: result.value.appointment };
+}
+
+export async function rescheduleAppointment(id, payload) {
+  const result = await request(`api/appointments/${encodeURIComponent(id)}/reschedule`, {
+    method: "POST",
+    body: payload,
+  });
+
+  if (!result.success) {
+    return result;
+  }
+
+  return { success: true, value: result.value.appointment };
+}
+
+export async function reopenAppointment(id, reason) {
+  const result = await request(`api/appointments/${encodeURIComponent(id)}/reopen`, {
+    method: "POST",
+    body: { reason },
   });
 
   if (!result.success) {

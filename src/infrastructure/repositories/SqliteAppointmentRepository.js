@@ -1,4 +1,5 @@
 import { Appointment } from "../../core/entities/Appointment.js";
+import { AppointmentEvent } from "../../core/entities/AppointmentEvent.js";
 import { ClientLocation } from "../../core/value-objects/ClientLocation.js";
 import { VisitSlot } from "../../core/value-objects/VisitSlot.js";
 import { VISIT_STATUS } from "../../core/value-objects/VisitStatus.js";
@@ -22,6 +23,8 @@ function toRow(appointment) {
     status: appointment.status.value,
     cancellation_reason: appointment.cancellationReason,
     cancelled_at: appointment.cancelledAt,
+    reschedule_reason: appointment.rescheduleReason,
+    rescheduled_at: appointment.rescheduledAt,
     created_at: appointment.createdAt,
     updated_at: appointment.updatedAt,
   };
@@ -50,6 +53,8 @@ function toEntity(row, resourceIds = []) {
     status: row.status || VISIT_STATUS.OPEN,
     cancellationReason: row.cancellation_reason || "",
     cancelledAt: row.cancelled_at || null,
+    rescheduleReason: row.reschedule_reason || "",
+    rescheduledAt: row.rescheduled_at || null,
     createdAt: row.created_at,
     updatedAt: row.updated_at || null,
   });
@@ -59,6 +64,34 @@ function toEntity(row, resourceIds = []) {
   }
 
   return result.value;
+}
+
+function toEventEntity(row) {
+  return new AppointmentEvent({
+    id: row.id,
+    appointmentId: row.appointment_id,
+    eventType: row.event_type,
+    reason: row.reason || "",
+    fromDate: row.from_date || null,
+    fromTime: row.from_time || null,
+    toDate: row.to_date || null,
+    toTime: row.to_time || null,
+    createdAt: row.created_at,
+  });
+}
+
+function toEventRow(event) {
+  return {
+    id: event.id,
+    appointment_id: event.appointmentId,
+    event_type: event.eventType,
+    reason: event.reason || "",
+    from_date: event.fromDate,
+    from_time: event.fromTime,
+    to_date: event.toDate,
+    to_time: event.toTime,
+    created_at: event.createdAt,
+  };
 }
 
 export class SqliteAppointmentRepository {
@@ -77,6 +110,21 @@ export class SqliteAppointmentRepository {
       WHERE appointment_id = ?
       ORDER BY resource_id
     `);
+    this.insertEventStmt = db.prepare(`
+      INSERT INTO appointment_events (
+        id, appointment_id, event_type, reason,
+        from_date, from_time, to_date, to_time, created_at
+      ) VALUES (
+        @id, @appointment_id, @event_type, @reason,
+        @from_date, @from_time, @to_date, @to_time, @created_at
+      )
+    `);
+    this.selectEventsByAppointment = db.prepare(`
+      SELECT *
+      FROM appointment_events
+      WHERE appointment_id = ?
+      ORDER BY created_at ASC, id ASC
+    `);
   }
 
   #loadResourceIds(appointmentId) {
@@ -90,7 +138,11 @@ export class SqliteAppointmentRepository {
     }
   }
 
-  save(appointment) {
+  #insertEvent(event) {
+    this.insertEventStmt.run(toEventRow(event));
+  }
+
+  save(appointment, event = null) {
     const persist = this.db.transaction(() => {
       this.db
         .prepare(
@@ -98,24 +150,29 @@ export class SqliteAppointmentRepository {
         INSERT INTO appointments (
           id, client_name, location, phone, phone_secondary, email, visit_date, visit_time,
           technician_id, service_type_id, notes,
-          status, cancellation_reason, cancelled_at, created_at, updated_at
+          status, cancellation_reason, cancelled_at,
+          reschedule_reason, rescheduled_at, created_at, updated_at
         ) VALUES (
           @id, @client_name, @location, @phone, @phone_secondary, @email, @visit_date, @visit_time,
           @technician_id, @service_type_id, @notes,
-          @status, @cancellation_reason, @cancelled_at, @created_at, @updated_at
+          @status, @cancellation_reason, @cancelled_at,
+          @reschedule_reason, @rescheduled_at, @created_at, @updated_at
         )
       `,
         )
         .run(toRow(appointment));
 
       this.#replaceResourceLinks(appointment.id, appointment.resourceIds);
+      if (event) {
+        this.#insertEvent(event);
+      }
       return appointment;
     });
 
     return persist();
   }
 
-  update(appointment) {
+  update(appointment, event = null) {
     const persist = this.db.transaction(() => {
       const result = this.db
         .prepare(
@@ -134,6 +191,8 @@ export class SqliteAppointmentRepository {
           status = @status,
           cancellation_reason = @cancellation_reason,
           cancelled_at = @cancelled_at,
+          reschedule_reason = @reschedule_reason,
+          rescheduled_at = @rescheduled_at,
           updated_at = @updated_at
         WHERE id = @id
       `,
@@ -145,10 +204,22 @@ export class SqliteAppointmentRepository {
       }
 
       this.#replaceResourceLinks(appointment.id, appointment.resourceIds);
+      if (event) {
+        this.#insertEvent(event);
+      }
       return appointment;
     });
 
     return persist();
+  }
+
+  insertEvent(event) {
+    this.#insertEvent(event);
+    return event;
+  }
+
+  listEventsByAppointmentId(appointmentId) {
+    return this.selectEventsByAppointment.all(appointmentId).map(toEventEntity);
   }
 
   findById(id) {
