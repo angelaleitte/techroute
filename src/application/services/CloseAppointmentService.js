@@ -4,6 +4,7 @@ import {
   APPOINTMENT_EVENT_TYPE,
   AppointmentEvent,
 } from "../../core/entities/AppointmentEvent.js";
+import { actorFromUser } from "../common/actor.js";
 import { toAppointmentViewModel } from "../view-models/mappers.js";
 
 export class CloseAppointmentService {
@@ -23,16 +24,30 @@ export class CloseAppointmentService {
     this.createId = createId;
   }
 
-  execute(id, rawInput = {}) {
+  execute(id, rawInput = {}, actor = null) {
     const appointmentId = String(id ?? "").trim();
     if (!appointmentId) {
       return fail("VALIDATION_ERROR", "Informe a visita a concluir.");
     }
 
-    const observation = String(rawInput.notes ?? rawInput.observation ?? "").trim();
+    const observation = String(
+      rawInput.postVisitNotes ?? rawInput.notes ?? rawInput.observation ?? "",
+    ).trim();
     const existing = this.appointmentRepository.findById(appointmentId);
     if (!existing) {
       return fail("APPOINTMENT_NOT_FOUND", "Visita não encontrada.");
+    }
+
+    if (actor?.role === "technician") {
+      if (actor.technicianId !== existing.technicianId) {
+        return fail("FORBIDDEN", "Você só pode concluir visitas atribuídas a você.");
+      }
+      if (!existing.status.isInProgress()) {
+        return fail(
+          "APPOINTMENT_INVALID_STATE",
+          "Inicie o atendimento (Atender) antes de concluir a visita.",
+        );
+      }
     }
 
     const at = this.now().toISOString();
@@ -42,6 +57,7 @@ export class CloseAppointmentService {
     }
 
     const closed = closedResult.value;
+    const { userId, actorName } = actorFromUser(actor);
     const event = new AppointmentEvent({
       id: this.createId(),
       appointmentId: closed.id,
@@ -51,6 +67,8 @@ export class CloseAppointmentService {
       fromTime: null,
       toDate: closed.slot.date,
       toTime: closed.slot.time,
+      userId,
+      actorName,
       createdAt: at,
     });
 
@@ -59,17 +77,12 @@ export class CloseAppointmentService {
       return fail("APPOINTMENT_NOT_FOUND", "Visita não encontrada.");
     }
 
-    const technician = this.technicianRepository.findById(saved.technicianId);
-    const serviceType = this.serviceTypeRepository.findById(saved.serviceTypeId);
-    const resources = this.resourceRepository.findByIds(saved.resourceIds);
-    const events = this.appointmentRepository.listEventsByAppointmentId(saved.id);
-
     return ok(
       toAppointmentViewModel(saved, {
-        technician,
-        serviceType,
-        resources,
-        events,
+        technician: this.technicianRepository.findById(saved.technicianId),
+        serviceType: this.serviceTypeRepository.findById(saved.serviceTypeId),
+        resources: this.resourceRepository.findByIds(saved.resourceIds),
+        events: this.appointmentRepository.listEventsByAppointmentId(saved.id),
         now: this.now(),
       }),
     );

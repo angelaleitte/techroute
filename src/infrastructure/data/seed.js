@@ -1,8 +1,51 @@
+import { hashPassword } from "../security/password.js";
+
 export const SEED_TECHNICIANS = [
   { id: "tech-ana", name: "Ana Souza", specialty: "Instalação residencial", active: 1 },
   { id: "tech-carlos", name: "Carlos Mendes", specialty: "Redes e cabeamento", active: 1 },
   { id: "tech-juliana", name: "Juliana Rocha", specialty: "Manutenção preventiva", active: 1 },
   { id: "tech-pedro", name: "Pedro Almeida", specialty: "Reparo em campo", active: 1 },
+];
+
+/** Senha de demonstração para todos os usuários seed. */
+export const SEED_DEMO_PASSWORD = "123456";
+
+export const SEED_USERS = [
+  {
+    id: "user-supervisor",
+    username: "supervisor",
+    displayName: "Supervisor TechRoute",
+    role: "supervisor",
+    technicianId: null,
+  },
+  {
+    id: "user-ana",
+    username: "ana",
+    displayName: "Ana Souza",
+    role: "technician",
+    technicianId: "tech-ana",
+  },
+  {
+    id: "user-carlos",
+    username: "carlos",
+    displayName: "Carlos Mendes",
+    role: "technician",
+    technicianId: "tech-carlos",
+  },
+  {
+    id: "user-juliana",
+    username: "juliana",
+    displayName: "Juliana Rocha",
+    role: "technician",
+    technicianId: "tech-juliana",
+  },
+  {
+    id: "user-pedro",
+    username: "pedro",
+    displayName: "Pedro Almeida",
+    role: "technician",
+    technicianId: "tech-pedro",
+  },
 ];
 
 export const SEED_SERVICE_TYPES = [
@@ -100,6 +143,10 @@ export function seedCatalog(db) {
     INSERT OR IGNORE INTO resources (id, name, category, description)
     VALUES (@id, @name, @category, @description)
   `);
+  const insertUser = db.prepare(`
+    INSERT OR IGNORE INTO users (id, username, password_hash, display_name, role, technician_id, active)
+    VALUES (@id, @username, @passwordHash, @displayName, @role, @technicianId, 1)
+  `);
 
   const seed = db.transaction(() => {
     for (const technician of SEED_TECHNICIANS) {
@@ -110,6 +157,18 @@ export function seedCatalog(db) {
     }
     for (const resource of SEED_RESOURCES) {
       insertResource.run(resource);
+    }
+
+    const passwordHash = hashPassword(SEED_DEMO_PASSWORD);
+    for (const user of SEED_USERS) {
+      insertUser.run({
+        id: user.id,
+        username: user.username,
+        passwordHash,
+        displayName: user.displayName,
+        role: user.role,
+        technicianId: user.technicianId,
+      });
     }
   });
 

@@ -56,11 +56,32 @@ export const SCHEMA_STATEMENTS = [
     from_time TEXT,
     to_date TEXT,
     to_time TEXT,
+    user_id TEXT,
+    actor_name TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL,
     FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE CASCADE
   )`,
   `CREATE INDEX IF NOT EXISTS idx_appointment_events_appointment
     ON appointment_events (appointment_id, created_at)`,
+  `CREATE TABLE IF NOT EXISTS users (
+    id TEXT PRIMARY KEY,
+    username TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    display_name TEXT NOT NULL,
+    role TEXT NOT NULL,
+    technician_id TEXT,
+    active INTEGER NOT NULL DEFAULT 1,
+    FOREIGN KEY (technician_id) REFERENCES technicians(id)
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_users_username ON users (username)`,
+  `CREATE TABLE IF NOT EXISTS sessions (
+    token TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions (user_id)`,
 ];
 
 const APPOINTMENT_MIGRATIONS = [
@@ -82,6 +103,19 @@ const APPOINTMENT_MIGRATIONS = [
     sql: "ALTER TABLE appointments ADD COLUMN reschedule_reason TEXT NOT NULL DEFAULT ''",
   },
   { column: "rescheduled_at", sql: "ALTER TABLE appointments ADD COLUMN rescheduled_at TEXT" },
+  { column: "attended_at", sql: "ALTER TABLE appointments ADD COLUMN attended_at TEXT" },
+  {
+    column: "post_visit_notes",
+    sql: "ALTER TABLE appointments ADD COLUMN post_visit_notes TEXT NOT NULL DEFAULT ''",
+  },
+];
+
+const EVENT_MIGRATIONS = [
+  { column: "user_id", sql: "ALTER TABLE appointment_events ADD COLUMN user_id TEXT" },
+  {
+    column: "actor_name",
+    sql: "ALTER TABLE appointment_events ADD COLUMN actor_name TEXT NOT NULL DEFAULT ''",
+  },
 ];
 
 function listAppointmentColumns(db) {
@@ -215,11 +249,22 @@ function backfillReopenStatuses(db) {
   run();
 }
 
+function listEventColumns(db) {
+  return new Set(db.prepare("PRAGMA table_info(appointment_events)").all().map((row) => row.name));
+}
+
 export function migrateAppointmentsSchema(db) {
   const columns = listAppointmentColumns(db);
 
   for (const migration of APPOINTMENT_MIGRATIONS) {
     if (!columns.has(migration.column)) {
+      db.exec(migration.sql);
+    }
+  }
+
+  const eventColumns = listEventColumns(db);
+  for (const migration of EVENT_MIGRATIONS) {
+    if (!eventColumns.has(migration.column)) {
       db.exec(migration.sql);
     }
   }

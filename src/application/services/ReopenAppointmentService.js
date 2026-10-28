@@ -4,6 +4,7 @@ import {
   APPOINTMENT_EVENT_TYPE,
   AppointmentEvent,
 } from "../../core/entities/AppointmentEvent.js";
+import { actorFromUser } from "../common/actor.js";
 import { toAppointmentViewModel } from "../view-models/mappers.js";
 
 export class ReopenAppointmentService {
@@ -23,7 +24,7 @@ export class ReopenAppointmentService {
     this.createId = createId;
   }
 
-  execute(id, rawInput = {}) {
+  execute(id, rawInput = {}, actor = null) {
     const appointmentId = String(id ?? "").trim();
     if (!appointmentId) {
       return fail("VALIDATION_ERROR", "Informe a visita a reabrir.");
@@ -45,6 +46,7 @@ export class ReopenAppointmentService {
     const eventType = reopened.status.isRebooked()
       ? APPOINTMENT_EVENT_TYPE.REBOOKED
       : APPOINTMENT_EVENT_TYPE.REOPENED;
+    const { userId, actorName } = actorFromUser(actor);
     const event = new AppointmentEvent({
       id: this.createId(),
       appointmentId: reopened.id,
@@ -54,6 +56,8 @@ export class ReopenAppointmentService {
       fromTime: null,
       toDate: reopened.slot.date,
       toTime: reopened.slot.time,
+      userId,
+      actorName,
       createdAt: at,
     });
 

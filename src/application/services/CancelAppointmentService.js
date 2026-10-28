@@ -4,6 +4,7 @@ import {
   APPOINTMENT_EVENT_TYPE,
   AppointmentEvent,
 } from "../../core/entities/AppointmentEvent.js";
+import { actorFromUser } from "../common/actor.js";
 import { toAppointmentViewModel } from "../view-models/mappers.js";
 
 export class CancelAppointmentService {
@@ -23,7 +24,7 @@ export class CancelAppointmentService {
     this.createId = createId;
   }
 
-  execute(id, rawInput = {}) {
+  execute(id, rawInput = {}, actor = null) {
     const appointmentId = String(id ?? "").trim();
     if (!appointmentId) {
       return fail("VALIDATION_ERROR", "Informe a visita a cancelar.");
@@ -42,6 +43,7 @@ export class CancelAppointmentService {
     }
 
     const cancelled = cancelledResult.value;
+    const { userId, actorName } = actorFromUser(actor);
     const event = new AppointmentEvent({
       id: this.createId(),
       appointmentId: cancelled.id,
@@ -51,6 +53,8 @@ export class CancelAppointmentService {
       fromTime: null,
       toDate: cancelled.slot.date,
       toTime: cancelled.slot.time,
+      userId,
+      actorName,
       createdAt: at,
     });
 

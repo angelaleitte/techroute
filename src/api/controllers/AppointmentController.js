@@ -11,6 +11,7 @@ const CLIENT_ERROR_CODES = new Set([
   "TECHNICIAN_NOT_FOUND",
   "SERVICE_TYPE_NOT_FOUND",
   "RESOURCE_NOT_FOUND",
+  "FORBIDDEN",
 ]);
 
 function toHttp(result) {
@@ -21,9 +22,11 @@ function toHttp(result) {
   const status =
     result.error.code === "APPOINTMENT_NOT_FOUND"
       ? 404
-      : CLIENT_ERROR_CODES.has(result.error.code)
-        ? 400
-        : 500;
+      : result.error.code === "FORBIDDEN"
+        ? 403
+        : CLIENT_ERROR_CODES.has(result.error.code)
+          ? 400
+          : 500;
 
   return { status, body: { error: result.error } };
 }
@@ -37,7 +40,9 @@ export class AppointmentController {
     closeAppointmentService,
     rescheduleAppointmentService,
     reopenAppointmentService,
+    startAttendanceService,
     listAppointmentsService,
+    updateVisitNotesService,
   }) {
     this.registerAppointmentService = registerAppointmentService;
     this.updateAppointmentService = updateAppointmentService;
@@ -46,11 +51,13 @@ export class AppointmentController {
     this.closeAppointmentService = closeAppointmentService;
     this.rescheduleAppointmentService = rescheduleAppointmentService;
     this.reopenAppointmentService = reopenAppointmentService;
+    this.startAttendanceService = startAttendanceService;
     this.listAppointmentsService = listAppointmentsService;
+    this.updateVisitNotesService = updateVisitNotesService;
   }
 
   create = (request, response) => {
-    const result = this.registerAppointmentService.execute(request.body);
+    const result = this.registerAppointmentService.execute(request.body, request.user);
     const { status, body } = toHttp(result);
     response.status(status).json(status === 200 ? { appointment: body } : body);
   };
@@ -68,31 +75,67 @@ export class AppointmentController {
   };
 
   cancel = (request, response) => {
-    const result = this.cancelAppointmentService.execute(request.params.id, request.body);
+    const result = this.cancelAppointmentService.execute(
+      request.params.id,
+      request.body,
+      request.user,
+    );
     const { status, body } = toHttp(result);
     response.status(status).json(status === 200 ? { appointment: body } : body);
   };
 
   close = (request, response) => {
-    const result = this.closeAppointmentService.execute(request.params.id, request.body);
+    const result = this.closeAppointmentService.execute(
+      request.params.id,
+      request.body,
+      request.user,
+    );
     const { status, body } = toHttp(result);
     response.status(status).json(status === 200 ? { appointment: body } : body);
   };
 
   reschedule = (request, response) => {
-    const result = this.rescheduleAppointmentService.execute(request.params.id, request.body);
+    const result = this.rescheduleAppointmentService.execute(
+      request.params.id,
+      request.body,
+      request.user,
+    );
     const { status, body } = toHttp(result);
     response.status(status).json(status === 200 ? { appointment: body } : body);
   };
 
   reopen = (request, response) => {
-    const result = this.reopenAppointmentService.execute(request.params.id, request.body);
+    const result = this.reopenAppointmentService.execute(
+      request.params.id,
+      request.body,
+      request.user,
+    );
     const { status, body } = toHttp(result);
     response.status(status).json(status === 200 ? { appointment: body } : body);
   };
 
-  list = (_request, response) => {
-    const result = this.listAppointmentsService.execute();
+  startAttendance = (request, response) => {
+    const result = this.startAttendanceService.execute(request.params.id, request.user);
+    const { status, body } = toHttp(result);
+    response.status(status).json(status === 200 ? { appointment: body } : body);
+  };
+
+  updateNotes = (request, response) => {
+    const result = this.updateVisitNotesService.execute(
+      request.params.id,
+      request.body,
+      request.user,
+    );
+    const { status, body } = toHttp(result);
+    response.status(status).json(status === 200 ? { appointment: body } : body);
+  };
+
+  list = (request, response) => {
+    const filter =
+      request.user?.role === "technician" && request.user.technicianId
+        ? { technicianId: request.user.technicianId }
+        : {};
+    const result = this.listAppointmentsService.execute(50, filter);
     const { status, body } = toHttp(result);
     response.status(status).json(status === 200 ? { appointments: body } : body);
   };

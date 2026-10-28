@@ -9,6 +9,7 @@ import { ClientLocation } from "../../core/value-objects/ClientLocation.js";
 import { EmailAddress } from "../../core/value-objects/EmailAddress.js";
 import { PhoneNumber } from "../../core/value-objects/PhoneNumber.js";
 import { VisitSlot } from "../../core/value-objects/VisitSlot.js";
+import { actorFromUser } from "../common/actor.js";
 import { normalizeRegisterAppointmentInput } from "../input-models/RegisterAppointmentInput.js";
 import { toAppointmentViewModel } from "../view-models/mappers.js";
 import { resolveResources } from "./resolveResources.js";
@@ -30,7 +31,7 @@ export class RegisterAppointmentService {
     this.createId = createId;
   }
 
-  execute(rawInput) {
+  execute(rawInput, actor = null) {
     const input = normalizeRegisterAppointmentInput(rawInput);
 
     if (input.clientName.length < 3) {
@@ -117,6 +118,7 @@ export class RegisterAppointmentService {
     }
 
     const appointment = appointmentResult.value;
+    const { userId, actorName } = actorFromUser(actor);
     const createdEvent = new AppointmentEvent({
       id: this.createId(),
       appointmentId: appointment.id,
@@ -126,6 +128,8 @@ export class RegisterAppointmentService {
       fromTime: null,
       toDate: appointment.slot.date,
       toTime: appointment.slot.time,
+      userId,
+      actorName,
       createdAt: appointment.createdAt,
     });
 

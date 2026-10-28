@@ -43,6 +43,8 @@ export function toAppointmentEventViewModel(event) {
     toTime: event.toTime,
     fromSlotLabel,
     toSlotLabel,
+    userId: event.userId || null,
+    actorName: event.actorName || "",
     createdAt: event.createdAt,
     createdAtLabel: formatDateTimeLabel(event.createdAt),
   };
@@ -66,6 +68,8 @@ export function toAppointmentViewModel(
   const resolvedResources = resources.map(toResourceViewModel);
   const canChange = appointment.status.allowsChanges();
   const canReopen = appointment.status.canReopen();
+  const canAttend = appointment.status.canStartAttendance();
+  const isInProgress = appointment.status.isInProgress();
   const resolvedEvents = events.map(toAppointmentEventViewModel);
 
   return {
@@ -83,6 +87,9 @@ export function toAppointmentViewModel(
     serviceTypeId: appointment.serviceTypeId,
     serviceTypeName: serviceType?.name ?? "",
     notes: appointment.notes,
+    postVisitNotes: appointment.postVisitNotes || "",
+    attendedAt: appointment.attendedAt,
+    attendedAtLabel: formatDateTimeLabel(appointment.attendedAt),
     resourceIds: [...appointment.resourceIds],
     resources: resolvedResources,
     resourceCount: resolvedResources.length,
@@ -90,12 +97,14 @@ export function toAppointmentViewModel(
     displayStatus,
     statusLabel: VisitStatus.labelFor(displayStatus),
     statusBadgeClass: VisitStatus.badgeClassFor(displayStatus),
-    canEdit: canChange,
+    canEdit: canChange && !isInProgress,
     canCancel: canChange,
     canClose: canChange,
-    canReschedule: canChange,
+    canReschedule: canChange && !isInProgress,
+    canAttend,
+    canEditPostVisitNotes: isInProgress,
     canReopen,
-    canAllocateResources: canChange,
+    canAllocateResources: canChange && !isInProgress,
     cancellationReason: appointment.cancellationReason,
     cancelledAt: appointment.cancelledAt,
     rescheduleReason: appointment.rescheduleReason,

@@ -6,6 +6,8 @@ const icons = {
   list: `<svg class="ds-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path></svg>`,
   resources: `<svg class="ds-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>`,
   check: `<svg class="ds-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>`,
+  users: `<svg class="ds-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path></svg>`,
+  profile: `<svg class="ds-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 20a8 8 0 0 1 16 0"></path></svg>`,
   menu: `<svg class="ds-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>`,
   close: `<svg class="ds-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m18 6-12 12M6 6l12 12"></path></svg>`,
   collapse: `<svg class="ds-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6"></path></svg>`,
@@ -14,6 +16,9 @@ const icons = {
 
 const shellState = {
   drawerOpen: false,
+  options: {},
+  mounted: false,
+  desktopMedia: null,
 };
 
 function isDesktop() {
@@ -50,10 +55,13 @@ function applySidebarMode(container, mode) {
 
 function currentHash() {
   const hash = window.location.hash || "#visitas";
-  if (hash === "#agendar") {
+  if (hash === "#agendar" || hash === "#recursos") {
     return "#visitas";
   }
-  return hash;
+  if (hash === "#usuarios" || hash === "#perfil" || hash === "#visitas") {
+    return hash;
+  }
+  return "#visitas";
 }
 
 export function getCurrentTheme() {
@@ -93,8 +101,9 @@ function themeButton(theme, placement = "right") {
   `;
 }
 
-function navMarkup() {
+function navMarkup(user) {
   const hash = currentHash();
+  const isSupervisor = user?.role === "supervisor";
 
   return `
     <nav class="app-nav" aria-label="Principal">
@@ -102,11 +111,51 @@ function navMarkup() {
         ${icons.list}
         <span class="app-nav__label">Visitas</span>
       </a>
+      ${
+        isSupervisor
+          ? `<a class="app-nav__link ds-tooltip ds-tooltip--right" href="#usuarios" data-tooltip="Funcionários" ${hash === "#usuarios" ? 'aria-current="page"' : ""}>
+              ${icons.users}
+              <span class="app-nav__label">Funcionários</span>
+            </a>`
+          : ""
+      }
+      <a class="app-nav__link ds-tooltip ds-tooltip--right" href="#perfil" data-tooltip="Meu perfil" ${hash === "#perfil" ? 'aria-current="page"' : ""}>
+        ${icons.profile}
+        <span class="app-nav__label">Meu perfil</span>
+      </a>
     </nav>
   `;
 }
 
-function renderDesktopSidebar(container) {
+function userBlockMarkup(user) {
+  if (!user) {
+    return "";
+  }
+  const role = user.role === "technician" ? "Técnico" : "Supervisor";
+  return `
+    <div class="app-user">
+      <div class="app-user__info">
+        <span class="app-user__name">${escapeText(user.displayName)}</span>
+        <span class="app-user__role">${role}</span>
+      </div>
+      <a class="ds-btn ds-btn--secondary ds-btn--sm app-user__profile" href="#perfil">Perfil</a>
+      <button class="ds-btn ds-btn--secondary ds-btn--sm app-user__logout" type="button" data-action="logout">
+        Sair
+      </button>
+    </div>
+  `;
+}
+
+function escapeText(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function renderDesktopSidebar(container, options = {}) {
   const theme = getCurrentTheme();
   const collapsed = getSidebarMode() === "collapsed";
   const toggleLabel = collapsed ? "Expandir menu lateral" : "Ocultar menu lateral";
@@ -126,8 +175,9 @@ function renderDesktopSidebar(container) {
           ${icons.collapse}
         </button>
       </div>
-      ${navMarkup()}
+      ${navMarkup(options.user)}
       <div class="app-sidebar__bottom">
+        ${userBlockMarkup(options.user)}
         ${themeButton(theme)}
       </div>
     </aside>
@@ -169,7 +219,7 @@ function updateMobileNav(container) {
   });
 }
 
-function renderMobileHeader(container) {
+function renderMobileHeader(container, options = {}) {
   const theme = getCurrentTheme();
 
   container.innerHTML = `
@@ -204,33 +254,51 @@ function renderMobileHeader(container) {
           ${icons.close}
         </button>
       </div>
-      ${navMarkup()}
+      ${navMarkup(options.user)}
+      <div class="app-sidebar__bottom">
+        ${userBlockMarkup(options.user)}
+      </div>
     </aside>
   `;
 
   syncDrawer(container);
 }
 
-function paint(container) {
+export function refreshAppShellUser(user) {
+  shellState.options = { ...shellState.options, user };
+  const container = document.getElementById("app-shell");
+  if (container && shellState.mounted) {
+    paint(container, shellState.options);
+  }
+}
+
+function paint(container, options = {}) {
   if (isDesktop()) {
     shellState.drawerOpen = false;
     document.body.classList.remove("is-drawer-open");
-    renderDesktopSidebar(container);
+    renderDesktopSidebar(container, options);
     return;
   }
 
-  renderMobileHeader(container);
+  renderMobileHeader(container, options);
 }
 
-export function mountAppShell(container) {
-  const desktop = window.matchMedia(DESKTOP_QUERY);
+export function mountAppShell(container, options = {}) {
+  shellState.options = options;
   setSidebarMode(getSidebarMode());
-  paint(container);
+  paint(container, options);
 
-  desktop.addEventListener("change", () => paint(container));
+  if (shellState.mounted) {
+    return;
+  }
+  shellState.mounted = true;
+
+  const desktop = window.matchMedia(DESKTOP_QUERY);
+  shellState.desktopMedia = desktop;
+  desktop.addEventListener("change", () => paint(container, shellState.options));
   window.addEventListener("hashchange", () => {
     if (isDesktop()) {
-      paint(container);
+      paint(container, shellState.options);
       return;
     }
 
@@ -248,9 +316,14 @@ export function mountAppShell(container) {
       return;
     }
 
+    if (action === "logout") {
+      shellState.options?.onLogout?.();
+      return;
+    }
+
     if (action === "toggle-theme") {
       applyTheme(getCurrentTheme() === "dark" ? "light" : "dark");
-      paint(container);
+      paint(container, shellState.options);
       return;
     }
 

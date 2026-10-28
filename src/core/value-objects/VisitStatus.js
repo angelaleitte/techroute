@@ -2,6 +2,7 @@ import { fail, ok } from "../common/Result.js";
 
 export const VISIT_STATUS = Object.freeze({
   OPEN: "open",
+  IN_PROGRESS: "in_progress",
   CLOSED: "closed",
   CANCELLED: "cancelled",
   REOPENED: "reopened",
@@ -10,6 +11,7 @@ export const VISIT_STATUS = Object.freeze({
 
 const LABELS = Object.freeze({
   open: "Aberta",
+  in_progress: "Em atendimento",
   closed: "Fechada",
   cancelled: "Cancelada",
   reopened: "Reaberta",
@@ -19,6 +21,7 @@ const LABELS = Object.freeze({
 
 const BADGES = Object.freeze({
   open: "ds-badge--info",
+  in_progress: "ds-badge--warning",
   closed: "ds-badge--closed",
   cancelled: "ds-badge--danger",
   reopened: "ds-badge--info",
@@ -64,6 +67,10 @@ export class VisitStatus {
     return this.value === VISIT_STATUS.OPEN;
   }
 
+  isInProgress() {
+    return this.value === VISIT_STATUS.IN_PROGRESS;
+  }
+
   isClosed() {
     return this.value === VISIT_STATUS.CLOSED;
   }
@@ -81,6 +88,10 @@ export class VisitStatus {
   }
 
   allowsChanges() {
+    return this.isOpen() || this.isReopened() || this.isRebooked() || this.isInProgress();
+  }
+
+  canStartAttendance() {
     return this.isOpen() || this.isReopened() || this.isRebooked();
   }
 

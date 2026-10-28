@@ -6,10 +6,13 @@ import {
   fetchAppointments,
   reopenAppointment,
   rescheduleAppointment,
+  startAttendance,
   updateAppointment,
+  updateVisitNotes,
 } from "../api/appointments.js";
+import { fetchCurrentUser, login as loginRequest, logout as logoutRequest } from "../api/auth.js";
 import { fetchResources, fetchServiceTypes, fetchTechnicians } from "../api/catalog.js";
-import { mountAppShell } from "../components/app-shell.js";
+import { mountAppShell, refreshAppShellUser } from "../components/app-shell.js";
 import { renderBanner } from "../components/banner.js";
 import {
   bindSelectFields,
@@ -20,6 +23,8 @@ import {
   renderSelectField,
 } from "../components/field.js";
 import { serviceTypeIcon } from "../components/service-icons.js";
+import { mountProfile } from "./profile.js";
+import { mountUsersAdmin } from "./users-admin.js";
 
 const emptyValues = {
   clientName: "",
@@ -32,12 +37,14 @@ const emptyValues = {
   technicianId: "",
   serviceTypeId: "",
   notes: "",
+  postVisitNotes: "",
   resourceIds: [],
 };
 
 const STATUS_FILTERS = [
   { id: "all", label: "Todos os status" },
   { id: "open", label: "Abertas" },
+  { id: "in_progress", label: "Em atendimento" },
   { id: "reopened", label: "Reabertas" },
   { id: "rebooked", label: "Remarcadas" },
   { id: "late", label: "Atrasadas" },
@@ -73,10 +80,15 @@ const state = {
   closeNotes: "",
   closeError: "",
   closeLoading: false,
-  statusFilter: "all",
+  statusFilter: [],
   clientFilter: "",
   clientFilterQuery: "",
   clientFilterOpen: false,
+  technicianFilter: "",
+  technicianFilterOpen: false,
+  dateFrom: "",
+  dateTo: "",
+  filtersOpen: true,
   sortDir: "az",
   viewMode: "card",
   statusMenuOpen: false,
@@ -92,7 +104,52 @@ const state = {
   allocateQuery: "",
   allocateStatusFilter: "all",
   allocateServiceTypeFilter: "all",
+  user: null,
+  authChecked: false,
+  loginUsername: "",
+  loginPassword: "",
+  loginError: "",
+  loginLoading: false,
+  notesSaving: false,
+  notesError: "",
+  historyOpen: false,
 };
+
+function isSupervisor() {
+  return state.user?.role === "supervisor";
+}
+
+function isTechnician() {
+  return state.user?.role === "technician";
+}
+
+function roleLabel(role) {
+  return role === "technician" ? "Técnico" : "Supervisor";
+}
+
+function canShowAttend(appointment) {
+  if (!appointment?.canAttend) {
+    return false;
+  }
+  if (isSupervisor()) {
+    return true;
+  }
+  return isTechnician() && appointment.technicianId === state.user?.technicianId;
+}
+
+function canShowClose(appointment) {
+  if (!appointment?.canClose) {
+    return false;
+  }
+  if (isSupervisor()) {
+    return true;
+  }
+  return (
+    isTechnician() &&
+    appointment.technicianId === state.user?.technicianId &&
+    appointment.displayStatus === "in_progress"
+  );
+}
 
 function getAllocateCandidates() {
   const query = state.allocateQuery.trim().toLowerCase();
@@ -195,11 +252,14 @@ function fillFormFromAppointment(appointment) {
     technicianId: appointment.technicianId,
     serviceTypeId: appointment.serviceTypeId,
     notes: appointment.notes || "",
+    postVisitNotes: appointment.postVisitNotes || "",
     resourceIds: [...(appointment.resourceIds || [])],
   };
-  state.viewingCanEdit = Boolean(appointment.canEdit);
-  state.viewingCanReschedule = Boolean(appointment.canReschedule);
-  state.viewingCanReopen = Boolean(appointment.canReopen);
+  const supervisor = isSupervisor();
+  state.viewingCanEdit = supervisor && Boolean(appointment.canEdit);
+  state.viewingCanReschedule = supervisor && Boolean(appointment.canReschedule);
+  state.viewingCanReopen = supervisor && Boolean(appointment.canReopen);
+  state.notesError = "";
 }
 
 function openNewVisit() {
@@ -227,6 +287,7 @@ function openView(appointment) {
   state.rescheduleTarget = null;
   state.reopenTarget = null;
   state.closeTarget = null;
+  state.historyOpen = false;
   state.formMode = "view";
   state.formOpen = true;
   state.statusMenuOpen = false;
@@ -261,6 +322,7 @@ function closeFormModal() {
   state.viewingCanEdit = false;
   state.viewingCanReschedule = false;
   state.viewingCanReopen = false;
+  state.historyOpen = false;
   state.values = { ...emptyValues, resourceIds: [] };
   state.errors = {};
   state.loading = false;
@@ -308,6 +370,7 @@ const statusFilterIcons = {
   reopened: actionIcons.statusReopened,
   rebooked: actionIcons.statusRebooked,
   late: actionIcons.statusLate,
+  in_progress: actionIcons.statusLate,
   closed: actionIcons.statusClosed,
   cancelled: actionIcons.statusCancelled,
 };
@@ -335,12 +398,25 @@ function getFilteredClientNames() {
 function getVisibleAppointments() {
   let items = [...state.appointments];
 
-  if (state.statusFilter !== "all") {
-    items = items.filter((item) => item.displayStatus === state.statusFilter);
+  if (state.statusFilter.length > 0) {
+    const selected = new Set(state.statusFilter);
+    items = items.filter((item) => selected.has(item.displayStatus));
   }
 
   if (state.clientFilter) {
     items = items.filter((item) => item.clientName === state.clientFilter);
+  }
+
+  if (isSupervisor() && state.technicianFilter) {
+    items = items.filter((item) => item.technicianId === state.technicianFilter);
+  }
+
+  if (state.dateFrom) {
+    items = items.filter((item) => item.date >= state.dateFrom);
+  }
+
+  if (state.dateTo) {
+    items = items.filter((item) => item.date <= state.dateTo);
   }
 
   items.sort((a, b) => {
@@ -351,27 +427,117 @@ function getVisibleAppointments() {
   return items;
 }
 
+function hasStatusFilter() {
+  return state.statusFilter.length > 0;
+}
+
+function isStatusSelected(statusId) {
+  if (statusId === "all") {
+    return !hasStatusFilter();
+  }
+  return state.statusFilter.includes(statusId);
+}
+
+function getStatusFilterLabel() {
+  if (!hasStatusFilter()) {
+    return "Todos os status";
+  }
+  if (state.statusFilter.length === 1) {
+    return STATUS_FILTERS.find((item) => item.id === state.statusFilter[0])?.label || "1 status";
+  }
+  return `${state.statusFilter.length} status`;
+}
+
+function toggleStatusFilter(statusId) {
+  if (statusId === "all") {
+    state.statusFilter = [];
+    return;
+  }
+
+  const selected = new Set(state.statusFilter);
+  if (selected.has(statusId)) {
+    selected.delete(statusId);
+  } else {
+    selected.add(statusId);
+  }
+  state.statusFilter = STATUS_FILTERS.map((item) => item.id)
+    .filter((id) => id !== "all" && selected.has(id));
+}
+
+function hasActiveListFilters() {
+  return (
+    hasStatusFilter() ||
+    Boolean(state.clientFilter) ||
+    (isSupervisor() && Boolean(state.technicianFilter)) ||
+    Boolean(state.dateFrom) ||
+    Boolean(state.dateTo)
+  );
+}
+
+function countActiveFieldFilters() {
+  let count = 0;
+  if (state.clientFilter) count += 1;
+  if (isSupervisor() && state.technicianFilter) count += 1;
+  if (state.dateFrom || state.dateTo) count += 1;
+  if (hasStatusFilter()) count += 1;
+  return count;
+}
+
+function getFiltersSummary() {
+  const parts = [];
+  if (state.clientFilter) parts.push(state.clientFilter);
+  if (isSupervisor() && state.technicianFilter) parts.push(getTechnicianFilterLabel());
+  if (state.dateFrom || state.dateTo) {
+    const from = state.dateFrom || "…";
+    const to = state.dateTo || "…";
+    parts.push(`${from} → ${to}`);
+  }
+  if (hasStatusFilter()) {
+    parts.push(getStatusFilterLabel());
+  }
+  if (parts.length > 0) {
+    return parts.join(" · ");
+  }
+  return isSupervisor()
+    ? "Cliente, técnico, período e status"
+    : "Cliente, período e status";
+}
+
+function getTechnicianFilterLabel() {
+  if (!state.technicianFilter) {
+    return "Todos os técnicos";
+  }
+  const technician = state.technicians.find((item) => item.id === state.technicianFilter);
+  return technician?.name || "Todos os técnicos";
+}
+
 function renderVisitActions(appointment) {
+  const supervisor = isSupervisor();
   return `
     <div class="app-visit-card__actions">
       <button class="ds-btn ds-btn--secondary ds-btn--sm" type="button" data-action="view-visit" data-id="${escapeHtml(appointment.id)}">${actionIcons.view}<span>Visualizar</span></button>
       ${
-        appointment.canReschedule
+        canShowAttend(appointment)
+          ? `<button class="ds-btn ds-btn--secondary ds-btn--sm" type="button" data-action="attend-visit" data-id="${escapeHtml(appointment.id)}">${actionIcons.check}<span>Atender</span></button>`
+          : ""
+      }
+      ${
+        supervisor && appointment.canReschedule
           ? `<button class="ds-btn ds-btn--secondary ds-btn--sm" type="button" data-action="open-reschedule" data-id="${escapeHtml(appointment.id)}">${actionIcons.reschedule}<span>Reagendar</span></button>`
           : ""
       }
       ${
-        appointment.canClose
+        canShowClose(appointment)
           ? `<button class="ds-btn ds-btn--secondary ds-btn--sm" type="button" data-action="close-visit" data-id="${escapeHtml(appointment.id)}">${actionIcons.check}<span>Concluir</span></button>`
           : ""
       }
       ${
-        appointment.canCancel
+        supervisor && appointment.canCancel
           ? `<button class="ds-btn ds-btn--danger ds-btn--sm" type="button" data-action="open-cancel" data-id="${escapeHtml(appointment.id)}">${actionIcons.cancel}<span>Cancelar</span></button>`
           : ""
       }
       ${
-        appointment.canReopen
+        supervisor && appointment.canReopen
           ? `<button class="ds-btn ds-btn--secondary ds-btn--sm" type="button" data-action="open-reopen" data-id="${escapeHtml(appointment.id)}">${actionIcons.reopen}<span>Reabrir</span></button>`
           : ""
       }
@@ -437,6 +603,22 @@ function renderVisitCard(appointment) {
               </div>`
             : ""
         }
+        ${
+          appointment.notes
+            ? `<div class="ds-row app-visit-card__notes">
+                <span class="ds-row__label">Observações</span>
+                <span class="ds-row__value">${escapeHtml(appointment.notes)}</span>
+              </div>`
+            : ""
+        }
+        ${
+          appointment.postVisitNotes
+            ? `<div class="ds-row app-visit-card__notes">
+                <span class="ds-row__label">Pós-visita</span>
+                <span class="ds-row__value">${escapeHtml(appointment.postVisitNotes)}</span>
+              </div>`
+            : ""
+        }
       </div>
       ${renderVisitActions(appointment)}
     </article>
@@ -444,26 +626,32 @@ function renderVisitCard(appointment) {
 }
 
 function renderVisitTableActions(appointment) {
+  const supervisor = isSupervisor();
   return `
     <div class="app-visit-table__actions">
       <button class="ds-icon-btn ds-tooltip ds-tooltip--bottom" type="button" data-action="view-visit" data-id="${escapeHtml(appointment.id)}" data-tooltip="Visualizar" aria-label="Visualizar">${actionIcons.view}</button>
       ${
-        appointment.canReschedule
+        canShowAttend(appointment)
+          ? `<button class="ds-icon-btn ds-tooltip ds-tooltip--bottom ds-tooltip--success" type="button" data-action="attend-visit" data-id="${escapeHtml(appointment.id)}" data-tooltip="Atender" aria-label="Atender">${actionIcons.check}</button>`
+          : ""
+      }
+      ${
+        supervisor && appointment.canReschedule
           ? `<button class="ds-icon-btn ds-tooltip ds-tooltip--bottom" type="button" data-action="open-reschedule" data-id="${escapeHtml(appointment.id)}" data-tooltip="Reagendar" aria-label="Reagendar">${actionIcons.reschedule}</button>`
           : ""
       }
       ${
-        appointment.canClose
+        canShowClose(appointment)
           ? `<button class="ds-icon-btn ds-tooltip ds-tooltip--bottom ds-tooltip--success" type="button" data-action="close-visit" data-id="${escapeHtml(appointment.id)}" data-tooltip="Concluir" aria-label="Concluir">${actionIcons.check}</button>`
           : ""
       }
       ${
-        appointment.canCancel
+        supervisor && appointment.canCancel
           ? `<button class="ds-icon-btn ds-tooltip ds-tooltip--bottom ds-tooltip--danger app-visit-table__cancel" type="button" data-action="open-cancel" data-id="${escapeHtml(appointment.id)}" data-tooltip="Cancelar" aria-label="Cancelar">${actionIcons.cancel}</button>`
           : ""
       }
       ${
-        appointment.canReopen
+        supervisor && appointment.canReopen
           ? `<button class="ds-icon-btn ds-tooltip ds-tooltip--bottom" type="button" data-action="open-reopen" data-id="${escapeHtml(appointment.id)}" data-tooltip="Reabrir" aria-label="Reabrir">${actionIcons.reopen}</button>`
           : ""
       }
@@ -528,25 +716,25 @@ function renderClientFilter() {
   const isActive = Boolean(state.clientFilter);
 
   return `
-    <div class="app-client-filter${state.clientFilterOpen ? " is-open" : ""}${isActive ? " is-active" : ""}">
+    <div class="app-select-filter app-client-filter${state.clientFilterOpen ? " is-open" : ""}${isActive ? " is-active" : ""}">
       <button
-        class="app-client-filter__trigger"
+        class="app-select-filter__trigger"
         type="button"
         data-action="toggle-client-filter"
         aria-haspopup="listbox"
         aria-expanded="${state.clientFilterOpen ? "true" : "false"}"
         aria-controls="client-filter-list"
       >
-        <span class="app-client-filter__value${state.clientFilter ? "" : " is-placeholder"}">${escapeHtml(selectedLabel)}</span>
-        <svg class="ds-icon ds-icon--sm app-client-filter__chevron" viewBox="0 0 24 24" aria-hidden="true">
+        <span class="app-select-filter__value${state.clientFilter ? "" : " is-placeholder"}">${escapeHtml(selectedLabel)}</span>
+        <svg class="ds-icon ds-icon--sm app-select-filter__chevron" viewBox="0 0 24 24" aria-hidden="true">
           <path d="m6 9 6 6 6-6"></path>
         </svg>
       </button>
       ${
         state.clientFilterOpen
-          ? `<div class="app-client-filter__panel" role="presentation">
+          ? `<div class="app-select-filter__panel" role="presentation">
               <input
-                class="ds-input app-client-filter__search"
+                class="ds-input app-select-filter__search"
                 id="clientFilterQuery"
                 type="search"
                 autocomplete="off"
@@ -554,10 +742,10 @@ function renderClientFilter() {
                 value="${escapeHtml(state.clientFilterQuery)}"
                 aria-label="Buscar cliente por nome"
               >
-              <ul class="app-client-filter__list" id="client-filter-list" role="listbox" aria-label="Clientes">
+              <ul class="app-select-filter__list" id="client-filter-list" role="listbox" aria-label="Clientes">
                 <li>
                   <button
-                    class="app-client-filter__option${!state.clientFilter ? " is-selected" : ""}"
+                    class="app-select-filter__option${!state.clientFilter ? " is-selected" : ""}"
                     type="button"
                     role="option"
                     aria-selected="${!state.clientFilter ? "true" : "false"}"
@@ -569,13 +757,13 @@ function renderClientFilter() {
                 </li>
                 ${
                   names.length === 0
-                    ? `<li class="app-client-filter__empty">Nenhum cliente encontrado</li>`
+                    ? `<li class="app-select-filter__empty">Nenhum cliente encontrado</li>`
                     : names
                         .map(
                           (name) => `
                             <li>
                               <button
-                                class="app-client-filter__option${state.clientFilter === name ? " is-selected" : ""}"
+                                class="app-select-filter__option${state.clientFilter === name ? " is-selected" : ""}"
                                 type="button"
                                 role="option"
                                 aria-selected="${state.clientFilter === name ? "true" : "false"}"
@@ -597,91 +785,254 @@ function renderClientFilter() {
   `;
 }
 
-function renderVisitsToolbar() {
-  const currentStatus = STATUS_FILTERS.find((item) => item.id === state.statusFilter) ?? STATUS_FILTERS[0];
-  const sortLabel = state.sortDir === "az" ? "Ordenar A–Z" : "Ordenar Z–A";
-  const sortIcon = state.sortDir === "az" ? actionIcons.sortAz : actionIcons.sortZa;
+function renderTechnicianFilter() {
+  if (!isSupervisor()) {
+    return "";
+  }
+
+  const technicians = [...state.technicians].sort((a, b) =>
+    String(a.name || "").localeCompare(String(b.name || ""), "pt-BR", { sensitivity: "base" }),
+  );
+  const selectedLabel = getTechnicianFilterLabel();
+  const isActive = Boolean(state.technicianFilter);
 
   return `
-    <div class="app-visits__toolbar" role="toolbar" aria-label="Filtros da agenda">
-      ${renderClientFilter()}
-      <div class="app-visits__toolbar-tools">
-        <div class="app-visits__filter">
-          <button
-            class="app-visits__tool-btn ds-tooltip${state.statusFilter !== "all" ? " is-active" : ""}"
-            type="button"
-            data-action="toggle-status-menu"
-            data-tooltip="Filtrar por status"
-            aria-label="Filtrar por status"
-            aria-expanded="${state.statusMenuOpen ? "true" : "false"}"
-            aria-haspopup="menu"
-          >
-            ${actionIcons.filter}
-          </button>
+    <div class="app-select-filter app-tech-filter${state.technicianFilterOpen ? " is-open" : ""}${isActive ? " is-active" : ""}">
+      <button
+        class="app-select-filter__trigger"
+        type="button"
+        data-action="toggle-technician-filter"
+        aria-haspopup="listbox"
+        aria-expanded="${state.technicianFilterOpen ? "true" : "false"}"
+        aria-controls="technician-filter-list"
+      >
+        <span class="app-select-filter__value${state.technicianFilter ? "" : " is-placeholder"}">${escapeHtml(selectedLabel)}</span>
+        <svg class="ds-icon ds-icon--sm app-select-filter__chevron" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="m6 9 6 6 6-6"></path>
+        </svg>
+      </button>
+      ${
+        state.technicianFilterOpen
+          ? `<div class="app-select-filter__panel" role="presentation">
+              <ul class="app-select-filter__list" id="technician-filter-list" role="listbox" aria-label="Técnicos">
+                <li>
+                  <button
+                    class="app-select-filter__option${!state.technicianFilter ? " is-selected" : ""}"
+                    type="button"
+                    role="option"
+                    aria-selected="${!state.technicianFilter ? "true" : "false"}"
+                    data-action="set-technician-filter"
+                    data-technician=""
+                  >
+                    Todos os técnicos
+                  </button>
+                </li>
+                ${
+                  technicians.length === 0
+                    ? `<li class="app-select-filter__empty">Nenhum técnico disponível</li>`
+                    : technicians
+                        .map(
+                          (technician) => `
+                            <li>
+                              <button
+                                class="app-select-filter__option${state.technicianFilter === technician.id ? " is-selected" : ""}"
+                                type="button"
+                                role="option"
+                                aria-selected="${state.technicianFilter === technician.id ? "true" : "false"}"
+                                data-action="set-technician-filter"
+                                data-technician="${escapeHtml(technician.id)}"
+                              >
+                                ${escapeHtml(technician.name)}
+                              </button>
+                            </li>
+                          `,
+                        )
+                        .join("")
+                }
+              </ul>
+            </div>`
+          : ""
+      }
+    </div>
+  `;
+}
+
+function renderDateRangeFilter() {
+  const isActive = Boolean(state.dateFrom || state.dateTo);
+
+  return `
+    <div class="app-date-range${isActive ? " is-active" : ""}" role="group" aria-label="Intervalo de data">
+      <label class="app-date-range__field">
+        <span class="app-date-range__label">De</span>
+        <input
+          class="ds-input app-date-range__input"
+          id="dateFromFilter"
+          type="date"
+          value="${escapeHtml(state.dateFrom)}"
+          aria-label="Data inicial"
+          ${state.dateTo ? `max="${escapeHtml(state.dateTo)}"` : ""}
+        >
+      </label>
+      <label class="app-date-range__field">
+        <span class="app-date-range__label">Até</span>
+        <input
+          class="ds-input app-date-range__input"
+          id="dateToFilter"
+          type="date"
+          value="${escapeHtml(state.dateTo)}"
+          aria-label="Data final"
+          ${state.dateFrom ? `min="${escapeHtml(state.dateFrom)}"` : ""}
+        >
+      </label>
+      ${
+        isActive
+          ? `<button
+              class="app-date-range__clear"
+              type="button"
+              data-action="clear-date-range"
+              aria-label="Limpar intervalo de data"
+              title="Limpar período"
+            >
+              <svg class="ds-icon ds-icon--sm" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="m18 6-12 12M6 6l12 12"></path>
+              </svg>
+            </button>`
+          : ""
+      }
+    </div>
+  `;
+}
+
+function renderVisitsToolbar() {
+  const statusLabel = getStatusFilterLabel();
+  const sortLabel = state.sortDir === "az" ? "Ordenar A–Z" : "Ordenar Z–A";
+  const sortIcon = state.sortDir === "az" ? actionIcons.sortAz : actionIcons.sortZa;
+  const open = Boolean(state.filtersOpen);
+  const activeCount = countActiveFieldFilters();
+  const hasFilters = activeCount > 0;
+  const summary = getFiltersSummary();
+
+  return `
+    <section class="app-filters${open ? " is-open" : ""}${hasFilters ? " is-active" : ""}" aria-labelledby="visits-filters-title">
+      <button
+        class="app-filters__toggle"
+        type="button"
+        data-action="toggle-filters-panel"
+        aria-expanded="${open ? "true" : "false"}"
+        aria-controls="visits-filters-panel"
+        id="visits-filters-title"
+      >
+        <span class="app-filters__toggle-main">
+          <span class="app-filters__toggle-label">Filtros</span>
           ${
-            state.statusMenuOpen
-              ? `<div class="app-visits__menu" role="menu" aria-label="Status da visita">
-                  ${STATUS_FILTERS.map(
-                    (item) => `
-                      <button
-                        class="app-visits__menu-item${state.statusFilter === item.id ? " is-selected" : ""}"
-                        type="button"
-                        role="menuitemradio"
-                        aria-checked="${state.statusFilter === item.id ? "true" : "false"}"
-                        data-action="set-status-filter"
-                        data-status="${item.id}"
-                      >
-                        ${statusFilterIcons[item.id] || ""}
-                        <span>${escapeHtml(item.label)}</span>
-                      </button>
-                    `,
-                  ).join("")}
+            hasFilters
+              ? `<span class="ds-badge ds-badge--subtle app-filters__count">${activeCount}</span>`
+              : ""
+          }
+        </span>
+        <span class="app-filters__toggle-summary">${escapeHtml(summary)}</span>
+        <svg class="ds-icon ds-icon--sm app-filters__chevron" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="m6 9 6 6 6-6"></path>
+        </svg>
+      </button>
+      <div class="app-filters__panel" id="visits-filters-panel" ${open ? "" : "hidden"}>
+        <div class="app-filters__fields" role="group" aria-label="Campos de filtro">
+          <div class="app-filters__field">
+            <span class="app-filters__field-label">Cliente</span>
+            ${renderClientFilter()}
+          </div>
+          ${
+            isSupervisor()
+              ? `<div class="app-filters__field">
+                  <span class="app-filters__field-label">Técnico</span>
+                  ${renderTechnicianFilter()}
                 </div>`
               : ""
           }
+          <div class="app-filters__field app-filters__field--dates">
+            <span class="app-filters__field-label">Período</span>
+            ${renderDateRangeFilter()}
+          </div>
         </div>
-        <span class="app-visits__filter-label" aria-live="polite">${escapeHtml(currentStatus.label)}</span>
-        <button
-          class="app-visits__tool-btn ds-tooltip"
-          type="button"
-          data-action="toggle-sort"
-          data-tooltip="${sortLabel}"
-          aria-label="${sortLabel}"
-        >
-          ${sortIcon}
-        </button>
-        <button
-          class="app-visits__tool-btn ds-tooltip${state.viewMode === "card" ? " is-active" : ""}"
-          type="button"
-          data-action="set-view-mode"
-          data-mode="card"
-          data-tooltip="Modo card"
-          aria-label="Modo card"
-          aria-pressed="${state.viewMode === "card" ? "true" : "false"}"
-        >
-          ${actionIcons.cards}
-        </button>
-        <button
-          class="app-visits__tool-btn ds-tooltip${state.viewMode === "list" ? " is-active" : ""}"
-          type="button"
-          data-action="set-view-mode"
-          data-mode="list"
-          data-tooltip="Modo lista"
-          aria-label="Modo lista"
-          aria-pressed="${state.viewMode === "list" ? "true" : "false"}"
-        >
-          ${actionIcons.list}
-        </button>
+        <div class="app-visits__toolbar-tools" role="toolbar" aria-label="Status, ordenação e visualização">
+          <div class="app-visits__filter">
+            <button
+              class="app-visits__tool-btn ds-tooltip${hasStatusFilter() ? " is-active" : ""}"
+              type="button"
+              data-action="toggle-status-menu"
+              data-tooltip="Filtrar por status (múltipla escolha)"
+              aria-label="Filtrar por status"
+              aria-expanded="${state.statusMenuOpen ? "true" : "false"}"
+              aria-haspopup="menu"
+            >
+              ${actionIcons.filter}
+            </button>
+            ${
+              state.statusMenuOpen
+                ? `<div class="app-visits__menu" role="menu" aria-label="Status da visita">
+                    <p class="app-visits__menu-hint">Selecione um ou mais status</p>
+                    ${STATUS_FILTERS.map(
+                      (item) => `
+                        <button
+                          class="app-visits__menu-item${isStatusSelected(item.id) ? " is-selected" : ""}"
+                          type="button"
+                          role="menuitemcheckbox"
+                          aria-checked="${isStatusSelected(item.id) ? "true" : "false"}"
+                          data-action="set-status-filter"
+                          data-status="${item.id}"
+                        >
+                          <span class="app-visits__menu-check" aria-hidden="true"></span>
+                          ${statusFilterIcons[item.id] || ""}
+                          <span>${escapeHtml(item.label)}</span>
+                        </button>
+                      `,
+                    ).join("")}
+                  </div>`
+                : ""
+            }
+          </div>
+          <span class="app-visits__filter-label" aria-live="polite">${escapeHtml(statusLabel)}</span>
+          <button
+            class="app-visits__tool-btn ds-tooltip"
+            type="button"
+            data-action="toggle-sort"
+            data-tooltip="${sortLabel}"
+            aria-label="${sortLabel}"
+          >
+            ${sortIcon}
+          </button>
+          <button
+            class="app-visits__tool-btn ds-tooltip${state.viewMode === "card" ? " is-active" : ""}"
+            type="button"
+            data-action="set-view-mode"
+            data-mode="card"
+            data-tooltip="Modo card"
+            aria-label="Modo card"
+            aria-pressed="${state.viewMode === "card" ? "true" : "false"}"
+          >
+            ${actionIcons.cards}
+          </button>
+          <button
+            class="app-visits__tool-btn ds-tooltip${state.viewMode === "list" ? " is-active" : ""}"
+            type="button"
+            data-action="set-view-mode"
+            data-mode="list"
+            data-tooltip="Modo lista"
+            aria-label="Modo lista"
+            aria-pressed="${state.viewMode === "list" ? "true" : "false"}"
+          >
+            ${actionIcons.list}
+          </button>
+        </div>
       </div>
-    </div>
+    </section>
   `;
 }
 
 function renderVisitsSection() {
   const visible = getVisibleAppointments();
   const total = state.appointments.length;
-  const hasExtraFilter = state.statusFilter !== "all" || Boolean(state.clientFilter);
-  const countLabel = hasExtraFilter
+  const countLabel = hasActiveListFilters()
     ? `${visible.length} de ${total}`
     : `${total} ${total <= 1 ? "visita" : "visitas"}`;
 
@@ -705,20 +1056,22 @@ function renderVisitsSection() {
       <div class="app-visits__title-row">
         <div class="app-visits__heading">
           <h1 class="ds-title app-visits__title">Visitas</h1>
-          <button
-            class="ds-icon-btn ds-tooltip ds-tooltip--bottom app-visits__add"
-            type="button"
-            data-action="open-new-visit"
-            data-tooltip="Nova visita"
-            aria-label="Nova visita"
-          >
-            ${actionIcons.plus}
-          </button>
-        </div>
-        <div class="app-visits__header-actions">
-          ${renderVisitsToolbar()}
+          ${
+            isSupervisor()
+              ? `<button
+                  class="ds-icon-btn ds-tooltip ds-tooltip--bottom app-visits__add"
+                  type="button"
+                  data-action="open-new-visit"
+                  data-tooltip="Nova visita"
+                  aria-label="Nova visita"
+                >
+                  ${actionIcons.plus}
+                </button>`
+              : ""
+          }
         </div>
       </div>
+      ${renderVisitsToolbar()}
       ${state.formOpen ? "" : renderBanner(state.banner)}
       ${body}
     </section>
@@ -745,13 +1098,13 @@ function renderCloseModal() {
         <p class="ds-small">
           Confirme a conclusão da visita de
           <strong>${escapeHtml(target.clientName)}</strong>
-          (${escapeHtml(target.slotLabel)}). Se quiser, inclua uma observação.
+          (${escapeHtml(target.slotLabel)}). As observações pós-visita serão gravadas no fechamento.
         </p>
         ${renderField({
           id: "closeNotes",
-          label: "Observações (opcional)",
+          label: "Observações pós-visita",
           error: state.closeError,
-          hint: "Opcional. Registre detalhes do atendimento ou pendências.",
+          hint: "Registre o que ocorreu no atendimento.",
           controlHtml: `
             <textarea
               class="ds-input app-textarea"
@@ -985,42 +1338,59 @@ function renderEventHistory() {
 
   const appointment = getEditingAppointment();
   const events = appointment?.events ?? [];
+  const open = Boolean(state.historyOpen);
+  const countLabel = events.length === 1 ? "1 evento" : `${events.length} eventos`;
 
-  if (events.length === 0) {
-    return `
-      <section class="app-history" aria-labelledby="visit-history-title">
-        <h3 class="app-form__checklist-title" id="visit-history-title">Histórico</h3>
-        <p class="ds-small">Nenhum evento registrado para esta visita.</p>
-      </section>
-    `;
-  }
+  const body =
+    events.length === 0
+      ? `<p class="ds-small app-history__empty">Nenhum evento registrado para esta visita.</p>`
+      : `<ol class="app-history__list">
+          ${events
+            .map((event) => {
+              const slotChange =
+                event.eventType === "rescheduled" && event.fromSlotLabel && event.toSlotLabel
+                  ? `<span class="app-history__slot">${escapeHtml(event.fromSlotLabel)} → ${escapeHtml(event.toSlotLabel)}</span>`
+                  : "";
+              const reason = event.reason
+                ? `<span class="app-history__reason">${escapeHtml(event.reason)}</span>`
+                : "";
+              const actor = event.actorName
+                ? `<span class="app-history__actor">por ${escapeHtml(event.actorName)}</span>`
+                : "";
+              return `
+                <li class="app-history__item" data-event-type="${escapeHtml(event.eventType)}">
+                  <div class="app-history__head">
+                    <span class="ds-badge ${escapeHtml(event.eventTypeBadgeClass || "ds-badge--subtle")}">${escapeHtml(event.eventTypeLabel)}</span>
+                    <time class="ds-small" datetime="${escapeHtml(event.createdAt)}">${escapeHtml(event.createdAtLabel)}</time>
+                  </div>
+                  ${actor}
+                  ${slotChange}
+                  ${reason}
+                </li>
+              `;
+            })
+            .join("")}
+        </ol>`;
 
   return `
-    <section class="app-history" aria-labelledby="visit-history-title">
-      <h3 class="app-form__checklist-title" id="visit-history-title">Histórico</h3>
-      <ol class="app-history__list">
-        ${events
-          .map((event) => {
-            const slotChange =
-              event.eventType === "rescheduled" && event.fromSlotLabel && event.toSlotLabel
-                ? `<span class="app-history__slot">${escapeHtml(event.fromSlotLabel)} → ${escapeHtml(event.toSlotLabel)}</span>`
-                : "";
-            const reason = event.reason
-              ? `<span class="app-history__reason">${escapeHtml(event.reason)}</span>`
-              : "";
-            return `
-              <li class="app-history__item" data-event-type="${escapeHtml(event.eventType)}">
-                <div class="app-history__head">
-                  <span class="ds-badge ${escapeHtml(event.eventTypeBadgeClass || "ds-badge--subtle")}">${escapeHtml(event.eventTypeLabel)}</span>
-                  <time class="ds-small" datetime="${escapeHtml(event.createdAt)}">${escapeHtml(event.createdAtLabel)}</time>
-                </div>
-                ${slotChange}
-                ${reason}
-              </li>
-            `;
-          })
-          .join("")}
-      </ol>
+    <section class="app-history${open ? " is-open" : ""}" aria-labelledby="visit-history-title">
+      <button
+        class="app-history__toggle"
+        type="button"
+        data-action="toggle-history"
+        aria-expanded="${open ? "true" : "false"}"
+        aria-controls="visit-history-panel"
+        id="visit-history-title"
+      >
+        <span class="app-history__toggle-label">Histórico de Agendamentos</span>
+        <span class="app-history__toggle-meta">${escapeHtml(countLabel)}</span>
+        <svg class="ds-icon ds-icon--sm app-history__chevron" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="m6 9 6 6 6-6"></path>
+        </svg>
+      </button>
+      <div class="app-history__panel" id="visit-history-panel" ${open ? "" : "hidden"}>
+        ${body}
+      </div>
     </section>
   `;
 }
@@ -1286,7 +1656,7 @@ function renderForm() {
       ${renderField({
         id: "notes",
         label: "Observações",
-        hint: isReadonly ? "" : "Opcional.",
+        hint: isReadonly ? "" : "Opcional. Notas do agendamento (não confundir com pós-visita).",
         controlHtml: `
           <textarea
             class="ds-input app-textarea"
@@ -1294,14 +1664,137 @@ function renderForm() {
             name="notes"
             maxlength="500"
             {{described}}
-            ${readonlyAttr}
+            ${isReadonly ? "readonly" : ""}
           >${escapeHtml(values.notes)}</textarea>
         `,
       })}
 
+      ${renderPostVisitNotesField()}
+
       ${renderEventHistory()}
       ${renderFormActions()}
     </form>
+  `;
+}
+
+function canEditPostVisitNotes() {
+  if (!state.editingId || state.formMode !== "view") {
+    return false;
+  }
+  const appointment = state.appointments.find((item) => item.id === state.editingId);
+  if (!appointment?.canEditPostVisitNotes) {
+    return false;
+  }
+  if (isSupervisor()) {
+    return true;
+  }
+  return isTechnician() && appointment.technicianId === state.user?.technicianId;
+}
+
+function renderPostVisitNotesField() {
+  const appointment = getEditingAppointment();
+  const editable = canEditPostVisitNotes();
+  const hasNotes = Boolean(state.values.postVisitNotes);
+  const showPanel = editable || hasNotes || appointment?.displayStatus === "in_progress";
+
+  if (!showPanel) {
+    return "";
+  }
+
+  const hint = editable
+    ? "Disponível após clicar em Atender. Ao concluir, estas notas são gravadas com o fechamento."
+    : "Registro do atendimento feito pelo técnico.";
+  const hintId = "post-visit-notes-hint";
+  const errorId = "post-visit-notes-error";
+
+  return `
+    <div class="app-form__span app-form__checklist app-post-visit" data-field="postVisitNotes">
+      <h3 class="app-form__checklist-title">Observações pós-visita</h3>
+      <fieldset class="ds-field app-resource-checklist" ${editable ? "" : "disabled"}>
+        <legend class="ds-field__label">Notas do atendimento</legend>
+        <p class="ds-field__hint" id="${hintId}">${escapeHtml(hint)}</p>
+        ${
+          appointment?.attendedAtLabel
+            ? `<p class="ds-field__hint app-post-visit__started">Início do atendimento: ${escapeHtml(appointment.attendedAtLabel)}</p>`
+            : ""
+        }
+        <div class="ds-input-wrap${state.notesError ? " is-error" : ""}">
+          <textarea
+            class="ds-input app-textarea"
+            id="postVisitNotes"
+            name="postVisitNotes"
+            maxlength="500"
+            rows="5"
+            aria-describedby="${hintId}${state.notesError ? ` ${errorId}` : ""}"
+            ${editable ? "" : "readonly"}
+            ${state.notesError ? 'aria-invalid="true"' : ""}
+          >${escapeHtml(state.values.postVisitNotes)}</textarea>
+        </div>
+        ${
+          state.notesError
+            ? `<p class="ds-field__error" id="${errorId}" role="alert">${escapeHtml(state.notesError)}</p>`
+            : ""
+        }
+        ${
+          editable
+            ? `<div class="app-form__actions app-post-visit__actions">
+                <button
+                  class="ds-btn ds-btn--secondary${state.notesSaving ? " is-loading" : ""}"
+                  type="button"
+                  data-action="save-visit-notes"
+                  ${state.notesSaving ? "disabled" : ""}
+                >
+                  Salvar rascunho
+                </button>
+                <button
+                  class="ds-btn ds-btn--primary"
+                  type="button"
+                  data-action="close-visit"
+                  data-id="${escapeHtml(appointment.id)}"
+                >
+                  Concluir atendimento
+                </button>
+              </div>`
+            : ""
+        }
+      </fieldset>
+    </div>
+  `;
+}
+
+function renderLoginPage() {
+  return `
+    <section class="app-login ds-screen">
+      <div class="app-login__card ds-card">
+        <div class="app-brand app-login__brand">
+          <span class="app-brand__mark" aria-hidden="true">TR</span>
+          <span class="app-brand__name">TechRoute</span>
+        </div>
+        <h1 class="ds-title">Entrar</h1>
+        <p class="ds-small">Use seu perfil de supervisor ou técnico para acessar a agenda.</p>
+        ${state.loginError ? renderBanner({ tone: "danger", message: state.loginError }) : ""}
+        <form class="app-login__form" data-action="submit-login">
+          <label class="ds-field">
+            <span class="ds-field__label">Usuário</span>
+            <div class="ds-input-wrap">
+              <input class="ds-input" id="loginUsername" name="username" autocomplete="username" value="${escapeHtml(state.loginUsername)}" required>
+            </div>
+          </label>
+          <label class="ds-field">
+            <span class="ds-field__label">Senha</span>
+            <div class="ds-input-wrap">
+              <input class="ds-input" id="loginPassword" name="password" type="password" autocomplete="current-password" value="${escapeHtml(state.loginPassword)}" required>
+            </div>
+          </label>
+          <button class="ds-btn ds-btn--primary${state.loginLoading ? " is-loading" : ""}" type="submit" ${state.loginLoading ? "disabled" : ""}>
+            Entrar
+          </button>
+        </form>
+        <div class="app-login__hint ds-small">
+          <strong>Demo:</strong> supervisor / 123456 · ana / 123456 · carlos / 123456 · juliana / 123456 · pedro / 123456
+        </div>
+      </div>
+    </section>
   `;
 }
 
@@ -1536,7 +2029,56 @@ function renderResourcesPage() {
   `;
 }
 
+function currentAppRoute() {
+  const hash = window.location.hash || "#visitas";
+  if (hash === "#usuarios") {
+    return "users";
+  }
+  if (hash === "#perfil") {
+    return "profile";
+  }
+  return "visits";
+}
+
 function renderPage(root) {
+  if (!state.user) {
+    document.body.classList.remove("is-modal-open");
+    document.body.classList.add("is-login");
+    root.innerHTML = renderLoginPage();
+    const form = root.querySelector("[data-action='submit-login']");
+    form?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      void handleLogin(root);
+    });
+    return;
+  }
+
+  document.body.classList.remove("is-login");
+  const route = currentAppRoute();
+
+  if (route === "users") {
+    if (!isSupervisor()) {
+      history.replaceState(null, "", `${window.location.pathname}${window.location.search}#visitas`);
+      renderPage(root);
+      return;
+    }
+    document.body.classList.remove("is-modal-open");
+    void mountUsersAdmin(root, { currentUserId: state.user.id });
+    return;
+  }
+
+  if (route === "profile") {
+    document.body.classList.remove("is-modal-open");
+    void mountProfile(root, {
+      user: state.user,
+      onUserUpdated: (user) => {
+        state.user = user;
+        refreshAppShellUser(user);
+      },
+    });
+    return;
+  }
+
   const modalOpen =
     state.formOpen ||
     Boolean(state.cancelTarget) ||
@@ -1764,6 +2306,22 @@ function bindPage(root) {
       renderPage(root);
     }
   });
+
+  root.querySelector("#dateFromFilter")?.addEventListener("change", (event) => {
+    state.dateFrom = event.target.value || "";
+    state.clientFilterOpen = false;
+    state.technicianFilterOpen = false;
+    state.statusMenuOpen = false;
+    renderPage(root);
+  });
+
+  root.querySelector("#dateToFilter")?.addEventListener("change", (event) => {
+    state.dateTo = event.target.value || "";
+    state.clientFilterOpen = false;
+    state.technicianFilterOpen = false;
+    state.statusMenuOpen = false;
+    renderPage(root);
+  });
 }
 
 async function handlePageAction(root, event) {
@@ -1806,6 +2364,19 @@ async function handlePageAction(root, event) {
     }
   }
 
+  if (
+    state.technicianFilterOpen &&
+    !event.target.closest(".app-tech-filter") &&
+    actionEl?.dataset.action !== "set-technician-filter" &&
+    actionEl?.dataset.action !== "toggle-technician-filter"
+  ) {
+    state.technicianFilterOpen = false;
+    if (!actionEl || !root.contains(actionEl)) {
+      renderPage(root);
+      return;
+    }
+  }
+
   if (!actionEl || !root.contains(actionEl)) {
     return;
   }
@@ -1815,6 +2386,7 @@ async function handlePageAction(root, event) {
 
   if (action === "toggle-client-filter") {
     state.clientFilterOpen = !state.clientFilterOpen;
+    state.technicianFilterOpen = false;
     state.statusMenuOpen = false;
     if (!state.clientFilterOpen) {
       state.clientFilterQuery = "";
@@ -1830,6 +2402,48 @@ async function handlePageAction(root, event) {
     state.clientFilter = actionEl.dataset.client || "";
     state.clientFilterQuery = "";
     state.clientFilterOpen = false;
+    renderPage(root);
+    return;
+  }
+
+  if (action === "toggle-technician-filter") {
+    if (!isSupervisor()) {
+      return;
+    }
+    state.technicianFilterOpen = !state.technicianFilterOpen;
+    state.clientFilterOpen = false;
+    state.clientFilterQuery = "";
+    state.statusMenuOpen = false;
+    renderPage(root);
+    return;
+  }
+
+  if (action === "set-technician-filter") {
+    if (!isSupervisor()) {
+      return;
+    }
+    state.technicianFilter = actionEl.dataset.technician || "";
+    state.technicianFilterOpen = false;
+    renderPage(root);
+    return;
+  }
+
+  if (action === "clear-date-range") {
+    state.dateFrom = "";
+    state.dateTo = "";
+    state.clientFilterOpen = false;
+    state.technicianFilterOpen = false;
+    state.statusMenuOpen = false;
+    renderPage(root);
+    return;
+  }
+
+  if (action === "toggle-filters-panel") {
+    state.filtersOpen = !state.filtersOpen;
+    state.clientFilterOpen = false;
+    state.clientFilterQuery = "";
+    state.technicianFilterOpen = false;
+    state.statusMenuOpen = false;
     renderPage(root);
     return;
   }
@@ -1900,13 +2514,14 @@ async function handlePageAction(root, event) {
     state.statusMenuOpen = !state.statusMenuOpen;
     state.clientFilterOpen = false;
     state.clientFilterQuery = "";
+    state.technicianFilterOpen = false;
     renderPage(root);
     return;
   }
 
   if (action === "set-status-filter") {
-    state.statusFilter = actionEl.dataset.status || "all";
-    state.statusMenuOpen = false;
+    toggleStatusFilter(actionEl.dataset.status || "all");
+    state.statusMenuOpen = true;
     renderPage(root);
     return;
   }
@@ -1926,9 +2541,91 @@ async function handlePageAction(root, event) {
   }
 
   if (action === "open-new-visit") {
+    if (!isSupervisor()) {
+      return;
+    }
     openNewVisit();
     renderPage(root);
     root.querySelector("#clientName")?.focus();
+    return;
+  }
+
+  if (action === "toggle-history") {
+    state.historyOpen = !state.historyOpen;
+    const section = root.querySelector(".app-history");
+    const toggle = root.querySelector("#visit-history-title");
+    const panel = root.querySelector("#visit-history-panel");
+    if (section && toggle && panel) {
+      section.classList.toggle("is-open", state.historyOpen);
+      toggle.setAttribute("aria-expanded", state.historyOpen ? "true" : "false");
+      panel.hidden = !state.historyOpen;
+      return;
+    }
+    renderPage(root);
+    return;
+  }
+
+  if (action === "attend-visit") {
+    const appointment = state.appointments.find((item) => item.id === id);
+    if (!canShowAttend(appointment)) {
+      return;
+    }
+    const result = await startAttendance(id);
+    if (!result.success) {
+      state.banner = {
+        tone: "danger",
+        message: result.error?.message || "Não foi possível iniciar o atendimento.",
+      };
+      renderPage(root);
+      return;
+    }
+    const index = state.appointments.findIndex((item) => item.id === result.value.id);
+    if (index >= 0) {
+      state.appointments[index] = result.value;
+    }
+    fillFormFromAppointment(result.value);
+    state.formOpen = true;
+    state.formMode = "view";
+    state.banner = {
+      tone: "success",
+      message: `Atendimento iniciado em ${result.value.attendedAtLabel || "agora"}.`,
+    };
+    renderPage(root);
+    root.querySelector("#postVisitNotes")?.focus();
+    return;
+  }
+
+  if (action === "save-visit-notes") {
+    if (!canEditPostVisitNotes() || !state.editingId) {
+      return;
+    }
+    const notes = String(root.querySelector("#postVisitNotes")?.value ?? "").trim();
+    if (notes.length > 500) {
+      state.notesError = "As observações pós-visita devem ter no máximo 500 caracteres.";
+      renderPage(root);
+      return;
+    }
+    state.notesError = "";
+    state.notesSaving = true;
+    state.values.postVisitNotes = notes;
+    renderPage(root);
+
+    const result = await updateVisitNotes(state.editingId, notes);
+    state.notesSaving = false;
+    if (!result.success) {
+      state.notesError = result.error?.message || "Não foi possível salvar as observações.";
+      renderPage(root);
+      return;
+    }
+
+    const index = state.appointments.findIndex((item) => item.id === result.value.id);
+    if (index >= 0) {
+      state.appointments[index] = result.value;
+    }
+    fillFormFromAppointment(result.value);
+    state.formMode = "view";
+    state.banner = { tone: "success", message: "Observações pós-visita salvas." };
+    renderPage(root);
     return;
   }
 
@@ -1964,11 +2661,15 @@ async function handlePageAction(root, event) {
 
   if (action === "close-visit" || action === "open-close") {
     const appointment = state.appointments.find((item) => item.id === id);
-    if (!appointment?.canClose) {
+    if (!canShowClose(appointment)) {
       return;
     }
+    const draftNotes =
+      String(root.querySelector("#postVisitNotes")?.value ?? "").trim() ||
+      appointment.postVisitNotes ||
+      "";
     state.closeTarget = appointment;
-    state.closeNotes = appointment.notes || "";
+    state.closeNotes = draftNotes;
     state.closeError = "";
     state.closeLoading = false;
     renderPage(root);
@@ -2286,7 +2987,80 @@ async function loadAppointments() {
   const result = await fetchAppointments();
   if (result.success) {
     state.appointments = result.value;
+    return;
   }
+  if (result.status === 401) {
+    state.user = null;
+  }
+}
+
+async function handleLogin(root) {
+  const username = String(root.querySelector("#loginUsername")?.value ?? "").trim();
+  const password = String(root.querySelector("#loginPassword")?.value ?? "");
+  state.loginUsername = username;
+  state.loginPassword = password;
+  state.loginError = "";
+  state.loginLoading = true;
+  renderPage(root);
+
+  const result = await loginRequest(username, password);
+  state.loginLoading = false;
+
+  if (!result.success) {
+    state.loginError = result.error?.message || "Não foi possível entrar.";
+    state.loginPassword = "";
+    renderPage(root);
+    root.querySelector("#loginPassword")?.focus();
+    return;
+  }
+
+  state.user = result.value.user;
+  state.loginPassword = "";
+  state.statusFilter = [];
+  state.clientFilter = "";
+  state.clientFilterQuery = "";
+  state.clientFilterOpen = false;
+  state.technicianFilter = "";
+  state.technicianFilterOpen = false;
+  state.dateFrom = "";
+  state.dateTo = "";
+  state.banner = {
+    tone: "success",
+    message: `Olá, ${state.user.displayName} (${roleLabel(state.user.role)}).`,
+  };
+  await startAuthenticatedApp();
+}
+
+async function handleLogout() {
+  await logoutRequest();
+  state.user = null;
+  state.appointments = [];
+  state.formOpen = false;
+  state.statusFilter = [];
+  state.clientFilter = "";
+  state.clientFilterQuery = "";
+  state.clientFilterOpen = false;
+  state.technicianFilter = "";
+  state.technicianFilterOpen = false;
+  state.dateFrom = "";
+  state.dateTo = "";
+  state.banner = null;
+  document.getElementById("app-shell").innerHTML = "";
+  renderPage(document.getElementById("app-page"));
+}
+
+async function startAuthenticatedApp() {
+  const shell = document.getElementById("app-shell");
+  const page = document.getElementById("app-page");
+  mountAppShell(shell, {
+    user: state.user,
+    onLogout: () => {
+      void handleLogout();
+    },
+  });
+  await loadCatalog();
+  await loadAppointments();
+  renderPage(page);
 }
 
 function boot() {
@@ -2300,21 +3074,29 @@ function boot() {
   ) {
     const openForm = window.location.hash === "#agendar";
     history.replaceState(null, "", `${window.location.pathname}${window.location.search}#visitas`);
-    if (openForm) {
+    if (openForm && isSupervisor()) {
       openNewVisit();
     }
   }
 
-  mountAppShell(shell);
   page.addEventListener("click", (event) => {
     void handlePageAction(page, event);
   });
   window.addEventListener("hashchange", () => {
+    if (!state.user) {
+      renderPage(page);
+      return;
+    }
     if (window.location.hash === "#agendar") {
       history.replaceState(null, "", `${window.location.pathname}${window.location.search}#visitas`);
-      openNewVisit();
+      if (isSupervisor()) {
+        openNewVisit();
+      }
     }
     if (window.location.hash === "#recursos") {
+      history.replaceState(null, "", `${window.location.pathname}${window.location.search}#visitas`);
+    }
+    if (window.location.hash === "#usuarios" && !isSupervisor()) {
       history.replaceState(null, "", `${window.location.pathname}${window.location.search}#visitas`);
     }
     renderPage(page);
@@ -2337,11 +3119,18 @@ function boot() {
       renderPage(page);
     }
   });
-  renderPage(page);
 
-  loadCatalog()
-    .then(loadAppointments)
-    .then(() => renderPage(page));
+  void (async () => {
+    const me = await fetchCurrentUser();
+    state.authChecked = true;
+    if (me.success) {
+      state.user = me.value.user;
+      await startAuthenticatedApp();
+      return;
+    }
+    shell.innerHTML = "";
+    renderPage(page);
+  })();
 }
 
 boot();

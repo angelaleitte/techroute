@@ -37,17 +37,20 @@ export class Appointment {
     technicianId,
     serviceTypeId,
     notes = "",
+    postVisitNotes = "",
     resourceIds = [],
     status = VISIT_STATUS.OPEN,
     cancellationReason = "",
     cancelledAt = null,
     rescheduleReason = "",
     rescheduledAt = null,
+    attendedAt = null,
     createdAt,
     updatedAt = null,
   }) {
     const normalizedName = String(clientName ?? "").trim().replace(/\s+/g, " ");
     const normalizedNotes = String(notes ?? "").trim();
+    const normalizedPostVisitNotes = String(postVisitNotes ?? "").trim();
     const normalizedResources = Array.isArray(resourceIds) ? [...resourceIds] : [];
     const normalizedReason = String(cancellationReason ?? "").trim();
     const normalizedRescheduleReason = String(rescheduleReason ?? "").trim();
@@ -92,6 +95,13 @@ export class Appointment {
       return fail("APPOINTMENT_INVARIANT", "As observações devem ter no máximo 500 caracteres.");
     }
 
+    if (normalizedPostVisitNotes.length > 500) {
+      return fail(
+        "APPOINTMENT_INVARIANT",
+        "As observações pós-visita devem ter no máximo 500 caracteres.",
+      );
+    }
+
     if (!createdAt) {
       return fail("APPOINTMENT_INVARIANT", "Visita precisa de data de criação.");
     }
@@ -132,12 +142,14 @@ export class Appointment {
         technicianId,
         serviceTypeId,
         notes: normalizedNotes,
+        postVisitNotes: normalizedPostVisitNotes,
         resourceIds: normalizedResources,
         status: visitStatus,
         cancellationReason: visitStatus.isCancelled() ? normalizedReason : "",
         cancelledAt: visitStatus.isCancelled() ? cancelledAt : null,
         rescheduleReason: normalizedRescheduleReason,
         rescheduledAt: normalizedRescheduleReason ? rescheduledAt : null,
+        attendedAt: attendedAt || null,
         createdAt,
         updatedAt,
       }),
@@ -155,12 +167,14 @@ export class Appointment {
     this.technicianId = props.technicianId;
     this.serviceTypeId = props.serviceTypeId;
     this.notes = props.notes;
+    this.postVisitNotes = props.postVisitNotes;
     this.resourceIds = Object.freeze([...props.resourceIds]);
     this.status = props.status;
     this.cancellationReason = props.cancellationReason;
     this.cancelledAt = props.cancelledAt;
     this.rescheduleReason = props.rescheduleReason;
     this.rescheduledAt = props.rescheduledAt;
+    this.attendedAt = props.attendedAt;
     this.createdAt = props.createdAt;
     this.updatedAt = props.updatedAt;
     Object.freeze(this);
@@ -178,24 +192,28 @@ export class Appointment {
       technicianId: this.technicianId,
       serviceTypeId: this.serviceTypeId,
       notes: this.notes,
+      postVisitNotes: this.postVisitNotes,
       resourceIds: [...this.resourceIds],
       status: this.status.value,
       cancellationReason: this.cancellationReason,
       cancelledAt: this.cancelledAt,
       rescheduleReason: this.rescheduleReason,
       rescheduledAt: this.rescheduledAt,
+      attendedAt: this.attendedAt,
       createdAt: this.createdAt,
       updatedAt: this.updatedAt,
     };
   }
 
   resolveDisplayStatus(now = new Date()) {
-    // Sempre prioriza o último status persistido (reaberta/remarcada/fechada/cancelada).
     if (this.status.isCancelled()) {
       return "cancelled";
     }
     if (this.status.isClosed()) {
       return "closed";
+    }
+    if (this.status.isInProgress()) {
+      return "in_progress";
     }
     if (this.status.isReopened()) {
       return "reopened";
@@ -250,6 +268,50 @@ export class Appointment {
     });
   }
 
+  startAttendance(attendedAt) {
+    if (!this.status.canStartAttendance()) {
+      return fail(
+        "APPOINTMENT_INVALID_STATE",
+        this.status.isInProgress()
+          ? "Atendimento já foi iniciado."
+          : "Esta visita não pode entrar em atendimento.",
+      );
+    }
+    if (!attendedAt) {
+      return fail("APPOINTMENT_INVARIANT", "Informe o início do atendimento.");
+    }
+
+    return Appointment.create({
+      ...this.toProps(),
+      status: VISIT_STATUS.IN_PROGRESS,
+      attendedAt,
+      updatedAt: attendedAt,
+    });
+  }
+
+  updatePostVisitNotes(postVisitNotes, updatedAt) {
+    if (!this.status.isInProgress()) {
+      return fail(
+        "APPOINTMENT_INVALID_STATE",
+        "Observações pós-visita só podem ser editadas durante o atendimento.",
+      );
+    }
+
+    const normalizedNotes = String(postVisitNotes ?? "").trim();
+    if (normalizedNotes.length > 500) {
+      return fail(
+        "VALIDATION_ERROR",
+        "As observações pós-visita devem ter no máximo 500 caracteres.",
+      );
+    }
+
+    return Appointment.create({
+      ...this.toProps(),
+      postVisitNotes: normalizedNotes,
+      updatedAt: updatedAt ?? this.updatedAt,
+    });
+  }
+
   allocateResources(resourceIds, updatedAt) {
     if (!this.status.allowsChanges()) {
       return fail(
@@ -269,7 +331,7 @@ export class Appointment {
     });
   }
 
-  close(closedAt, observation) {
+  close(closedAt, postVisitNotes) {
     if (!this.status.allowsChanges()) {
       return fail(
         "APPOINTMENT_INVALID_STATE",
@@ -282,23 +344,25 @@ export class Appointment {
       return fail("APPOINTMENT_INVARIANT", "Informe a data da conclusão.");
     }
 
-    let nextNotes = this.notes;
-    if (observation !== undefined && observation !== null) {
-      const normalizedObservation = String(observation).trim();
+    let nextPostVisitNotes = this.postVisitNotes;
+    if (postVisitNotes !== undefined && postVisitNotes !== null) {
+      const normalizedObservation = String(postVisitNotes).trim();
       if (normalizedObservation.length > 500) {
-        return fail("VALIDATION_ERROR", "As observações devem ter no máximo 500 caracteres.");
+        return fail(
+          "VALIDATION_ERROR",
+          "As observações pós-visita devem ter no máximo 500 caracteres.",
+        );
       }
-      if (normalizedObservation) {
-        nextNotes = normalizedObservation;
-      }
+      nextPostVisitNotes = normalizedObservation;
     }
 
     return Appointment.create({
       ...this.toProps(),
-      notes: nextNotes,
+      postVisitNotes: nextPostVisitNotes,
       status: VISIT_STATUS.CLOSED,
       cancellationReason: "",
       cancelledAt: null,
+      attendedAt: this.attendedAt || closedAt,
       updatedAt: closedAt,
     });
   }
@@ -367,6 +431,7 @@ export class Appointment {
       status: nextStatus,
       cancellationReason: "",
       cancelledAt: null,
+      attendedAt: null,
       updatedAt: reopenedAt,
     });
   }

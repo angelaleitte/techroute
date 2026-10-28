@@ -2,6 +2,7 @@ export const APPOINTMENT_EVENT_TYPE = Object.freeze({
   CREATED: "created",
   RESCHEDULED: "rescheduled",
   CANCELLED: "cancelled",
+  ATTENDED: "attended",
   CLOSED: "closed",
   REOPENED: "reopened",
   REBOOKED: "rebooked",
@@ -11,6 +12,7 @@ const LABELS = Object.freeze({
   created: "Criada",
   rescheduled: "Reagendada",
   cancelled: "Cancelada",
+  attended: "Em atendimento",
   closed: "Concluída",
   reopened: "Reaberta",
   rebooked: "Remarcada",
@@ -20,6 +22,7 @@ const BADGES = Object.freeze({
   created: "ds-badge--info",
   rescheduled: "ds-badge--info",
   cancelled: "ds-badge--danger",
+  attended: "ds-badge--warning",
   closed: "ds-badge--closed",
   reopened: "ds-badge--info",
   rebooked: "ds-badge--info",
@@ -43,6 +46,8 @@ export class AppointmentEvent {
     fromTime = null,
     toDate = null,
     toTime = null,
+    userId = null,
+    actorName = "",
     createdAt,
   }) {
     this.id = id;
@@ -53,6 +58,8 @@ export class AppointmentEvent {
     this.fromTime = fromTime;
     this.toDate = toDate;
     this.toTime = toTime;
+    this.userId = userId || null;
+    this.actorName = String(actorName ?? "").trim();
     this.createdAt = createdAt;
     Object.freeze(this);
   }

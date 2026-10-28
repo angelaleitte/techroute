@@ -11,6 +11,7 @@ export async function request(path, options = {}) {
   try {
     response = await fetch(path, {
       ...options,
+      credentials: "same-origin",
       headers,
       body: hasBody ? JSON.stringify(options.body) : undefined,
     });
@@ -27,6 +28,7 @@ export async function request(path, options = {}) {
     return {
       success: false,
       error: data.error || { code: "HTTP_ERROR", message: "Falha na comunicação com o servidor." },
+      status: response.status,
     };
   }
 

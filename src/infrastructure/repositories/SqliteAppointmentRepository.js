@@ -20,11 +20,13 @@ function toRow(appointment) {
     technician_id: appointment.technicianId,
     service_type_id: appointment.serviceTypeId,
     notes: appointment.notes,
+    post_visit_notes: appointment.postVisitNotes || "",
     status: appointment.status.value,
     cancellation_reason: appointment.cancellationReason,
     cancelled_at: appointment.cancelledAt,
     reschedule_reason: appointment.rescheduleReason,
     rescheduled_at: appointment.rescheduledAt,
+    attended_at: appointment.attendedAt,
     created_at: appointment.createdAt,
     updated_at: appointment.updatedAt,
   };
@@ -49,12 +51,14 @@ function toEntity(row, resourceIds = []) {
     technicianId: row.technician_id,
     serviceTypeId: row.service_type_id,
     notes: row.notes,
+    postVisitNotes: row.post_visit_notes || "",
     resourceIds,
     status: row.status || VISIT_STATUS.OPEN,
     cancellationReason: row.cancellation_reason || "",
     cancelledAt: row.cancelled_at || null,
     rescheduleReason: row.reschedule_reason || "",
     rescheduledAt: row.rescheduled_at || null,
+    attendedAt: row.attended_at || null,
     createdAt: row.created_at,
     updatedAt: row.updated_at || null,
   });
@@ -76,6 +80,8 @@ function toEventEntity(row) {
     fromTime: row.from_time || null,
     toDate: row.to_date || null,
     toTime: row.to_time || null,
+    userId: row.user_id || null,
+    actorName: row.actor_name || "",
     createdAt: row.created_at,
   });
 }
@@ -90,6 +96,8 @@ function toEventRow(event) {
     from_time: event.fromTime,
     to_date: event.toDate,
     to_time: event.toTime,
+    user_id: event.userId || null,
+    actor_name: event.actorName || "",
     created_at: event.createdAt,
   };
 }
@@ -113,10 +121,12 @@ export class SqliteAppointmentRepository {
     this.insertEventStmt = db.prepare(`
       INSERT INTO appointment_events (
         id, appointment_id, event_type, reason,
-        from_date, from_time, to_date, to_time, created_at
+        from_date, from_time, to_date, to_time,
+        user_id, actor_name, created_at
       ) VALUES (
         @id, @appointment_id, @event_type, @reason,
-        @from_date, @from_time, @to_date, @to_time, @created_at
+        @from_date, @from_time, @to_date, @to_time,
+        @user_id, @actor_name, @created_at
       )
     `);
     this.selectEventsByAppointment = db.prepare(`
@@ -149,14 +159,14 @@ export class SqliteAppointmentRepository {
           `
         INSERT INTO appointments (
           id, client_name, location, phone, phone_secondary, email, visit_date, visit_time,
-          technician_id, service_type_id, notes,
+          technician_id, service_type_id, notes, post_visit_notes,
           status, cancellation_reason, cancelled_at,
-          reschedule_reason, rescheduled_at, created_at, updated_at
+          reschedule_reason, rescheduled_at, attended_at, created_at, updated_at
         ) VALUES (
           @id, @client_name, @location, @phone, @phone_secondary, @email, @visit_date, @visit_time,
-          @technician_id, @service_type_id, @notes,
+          @technician_id, @service_type_id, @notes, @post_visit_notes,
           @status, @cancellation_reason, @cancelled_at,
-          @reschedule_reason, @rescheduled_at, @created_at, @updated_at
+          @reschedule_reason, @rescheduled_at, @attended_at, @created_at, @updated_at
         )
       `,
         )
@@ -188,11 +198,13 @@ export class SqliteAppointmentRepository {
           technician_id = @technician_id,
           service_type_id = @service_type_id,
           notes = @notes,
+          post_visit_notes = @post_visit_notes,
           status = @status,
           cancellation_reason = @cancellation_reason,
           cancelled_at = @cancelled_at,
           reschedule_reason = @reschedule_reason,
           rescheduled_at = @rescheduled_at,
+          attended_at = @attended_at,
           updated_at = @updated_at
         WHERE id = @id
       `,
@@ -218,28 +230,39 @@ export class SqliteAppointmentRepository {
     return event;
   }
 
+  findById(id) {
+    const row = this.db.prepare(`SELECT * FROM appointments WHERE id = ?`).get(id);
+    if (!row) {
+      return null;
+    }
+    return toEntity(row, this.#loadResourceIds(row.id));
+  }
+
   listEventsByAppointmentId(appointmentId) {
     return this.selectEventsByAppointment.all(appointmentId).map(toEventEntity);
   }
 
-  findById(id) {
-    const row = this.db.prepare("SELECT * FROM appointments WHERE id = ?").get(id);
-    if (!row) {
-      return null;
-    }
-    return toEntity(row, this.#loadResourceIds(id));
-  }
-
-  listRecent(limit = 20) {
-    const rows = this.db
-      .prepare(
-        `
-      SELECT * FROM appointments
-      ORDER BY created_at DESC
-      LIMIT ?
-    `,
-      )
-      .all(limit);
+  listRecent(limit = 20, { technicianId } = {}) {
+    const rows = technicianId
+      ? this.db
+          .prepare(
+            `
+          SELECT * FROM appointments
+          WHERE technician_id = ?
+          ORDER BY created_at DESC
+          LIMIT ?
+        `,
+          )
+          .all(technicianId, limit)
+      : this.db
+          .prepare(
+            `
+          SELECT * FROM appointments
+          ORDER BY created_at DESC
+          LIMIT ?
+        `,
+          )
+          .all(limit);
 
     return rows.map((row) => toEntity(row, this.#loadResourceIds(row.id)));
   }

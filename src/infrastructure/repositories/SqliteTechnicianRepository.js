@@ -25,4 +25,42 @@ export class SqliteTechnicianRepository {
       .all()
       .map(toEntity);
   }
+
+  listAll() {
+    return this.db
+      .prepare("SELECT * FROM technicians ORDER BY name ASC")
+      .all()
+      .map(toEntity);
+  }
+
+  create(technician) {
+    this.db
+      .prepare(
+        `
+      INSERT INTO technicians (id, name, specialty, active)
+      VALUES (?, ?, ?, ?)
+    `,
+      )
+      .run(technician.id, technician.name, technician.specialty || "", technician.active ? 1 : 0);
+
+    return this.findById(technician.id);
+  }
+
+  update(id, { name, specialty, active }) {
+    const result = this.db
+      .prepare(
+        `
+      UPDATE technicians
+      SET name = ?, specialty = ?, active = ?
+      WHERE id = ?
+    `,
+      )
+      .run(name, specialty || "", active ? 1 : 0, id);
+
+    if (result.changes === 0) {
+      return null;
+    }
+
+    return this.findById(id);
+  }
 }

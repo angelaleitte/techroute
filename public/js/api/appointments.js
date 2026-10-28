@@ -52,10 +52,22 @@ export async function cancelAppointment(id, reason) {
   return { success: true, value: result.value.appointment };
 }
 
-export async function closeAppointment(id, notes = "") {
+export async function closeAppointment(id, postVisitNotes = "") {
   const result = await request(`api/appointments/${encodeURIComponent(id)}/close`, {
     method: "POST",
-    body: { notes },
+    body: { postVisitNotes, notes: postVisitNotes },
+  });
+
+  if (!result.success) {
+    return result;
+  }
+
+  return { success: true, value: result.value.appointment };
+}
+
+export async function startAttendance(id) {
+  const result = await request(`api/appointments/${encodeURIComponent(id)}/attend`, {
+    method: "POST",
   });
 
   if (!result.success) {
@@ -82,6 +94,19 @@ export async function reopenAppointment(id, reason) {
   const result = await request(`api/appointments/${encodeURIComponent(id)}/reopen`, {
     method: "POST",
     body: { reason },
+  });
+
+  if (!result.success) {
+    return result;
+  }
+
+  return { success: true, value: result.value.appointment };
+}
+
+export async function updateVisitNotes(id, postVisitNotes = "") {
+  const result = await request(`api/appointments/${encodeURIComponent(id)}/notes`, {
+    method: "PUT",
+    body: { postVisitNotes },
   });
 
   if (!result.success) {

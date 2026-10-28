@@ -16,7 +16,7 @@ export class ListAppointmentsService {
     this.now = now;
   }
 
-  execute(limit = 20) {
+  execute(limit = 20, { technicianId } = {}) {
     const technicians = new Map(
       this.technicianRepository.listActive().map((technician) => [technician.id, technician]),
     );
@@ -28,17 +28,19 @@ export class ListAppointmentsService {
     );
     const now = this.now();
 
-    const appointments = this.appointmentRepository.listRecent(limit).map((appointment) =>
-      toAppointmentViewModel(appointment, {
-        technician: technicians.get(appointment.technicianId),
-        serviceType: serviceTypes.get(appointment.serviceTypeId),
-        resources: appointment.resourceIds
-          .map((id) => resourcesById.get(id))
-          .filter(Boolean),
-        events: this.appointmentRepository.listEventsByAppointmentId(appointment.id),
-        now,
-      }),
-    );
+    const appointments = this.appointmentRepository
+      .listRecent(limit, { technicianId })
+      .map((appointment) =>
+        toAppointmentViewModel(appointment, {
+          technician: technicians.get(appointment.technicianId),
+          serviceType: serviceTypes.get(appointment.serviceTypeId),
+          resources: appointment.resourceIds
+            .map((id) => resourcesById.get(id))
+            .filter(Boolean),
+          events: this.appointmentRepository.listEventsByAppointmentId(appointment.id),
+          now,
+        }),
+      );
 
     return ok(appointments);
   }

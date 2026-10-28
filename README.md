@@ -11,7 +11,9 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/entreg%C3%A1veis-4-ccff00?style=flat-square&labelColor=0b0c0f" alt="4 entregáveis" />
-  <img src="https://img.shields.io/badge/atual-3.1%20Notas%20p%C3%B3s--visita-ccff00?style=flat-square&labelColor=0b0c0f" alt="Tarefa atual" />
+  <img src="https://img.shields.io/badge/etapa-v3.1%20Submetida-ccff00?style=flat-square&labelColor=0b0c0f" alt="Etapa v3.1 Submetida" />
+  <img src="https://img.shields.io/badge/pr%C3%B3xima-4.1%20Filtros%20Dashboard-0b0c0f?style=flat-square" alt="Próxima etapa" />
+  <img src="https://img.shields.io/badge/auth-login%20%2B%20perfis-0b0c0f?style=flat-square" alt="Auth" />
   <img src="https://img.shields.io/badge/stack-HTML%20%7C%20CSS%20%7C%20JS-0b0c0f?style=flat-square" alt="Stack" />
   <img src="https://img.shields.io/badge/backend-Node.js%20%2B%20Express-0b0c0f?style=flat-square" alt="Backend" />
   <img src="https://img.shields.io/badge/banco-SQLite-0b0c0f?style=flat-square" alt="Banco" />
@@ -31,17 +33,19 @@ Foi desenvolvido como entrega de estágio **em etapas**: o repositório evolui d
 Nesta versão, a tela inicial é a **agenda de Visitas** (cards ou tabela).  
 A **inclusão de dados** (nova visita) e a **edição / visualização** acontecem em um **modal**, sem sair da lista:
 
-1. A home lista as visitas já registradas (filtros por cliente e status, ordenação, modos card/lista).  
+1. A home lista as visitas já registradas (acordeão de **Filtros**: cliente, técnico no supervisor, período e status múltiplo; ordenação; modos card/lista).  
 2. O botão **+** (Nova visita) abre o formulário em modal.  
 3. Visualizar (olho) abre o mesmo modal em modo leitura; a partir dele é possível editar.  
 4. No formulário, o **Checklist de recursos** permite marcar materiais, ferramentas e equipamentos da visita.  
-5. Cancelar ou **Reagendar** visita também usam modal (motivo obrigatório).
+5. Cancelar ou **Reagendar** visita também usam modal (motivo obrigatório).  
+6. Login por perfil (supervisor/técnico), **Atender** + observações pós-visita, **Funcionários** e **Meu perfil**.
 
 Foco do produto:
 
 - agenda de visitas como home, com inclusão/edição em **modal**;
 - formulário completo de agendamento (cliente, contatos, local, data/hora, técnico, tipo de serviço);
-- listagem e gestão das visitas (status, visualização, edição, reagendamento, cancelamento, conclusão);
+- listagem e gestão das visitas (status, visualização, edição, reagendamento, cancelamento, conclusão, atendimento);
+- autenticação com perfis, cadastro de funcionários e administração de perfil/senha;
 - alocação de recursos (checklist no modal da visita);
 - interface responsiva (mobile → desktop);
 - temas **claro** e **escuro** com a identidade **Lime Night**;
@@ -91,12 +95,36 @@ A lista abaixo espelha o **painel de entregas do estágio** (4 entregáveis).
 
 | Tarefa | Descrição | Status | Tag sugerida |
 |---|---|---|---|
-| **3.1** Campo de Observações do Técnico | Campo de texto para o técnico registrar observações após cada visita | Pendente | `v3.1` |
+| **3.1** Campo de Observações do Técnico | Campo de texto para o técnico registrar observações após cada visita, com login/perfis, atendimento em campo, administração de usuários e filtros avançados na agenda | Submetida | `v3.1` |
 
 **Critérios de aceite — 3.1**
 
 - Técnicos devem conseguir salvar as observações sem erros  
 - Observações devem ser fáceis de visualizar por supervisores  
+
+**Entrega v3.1 (Submetida — aprovação)**
+
+Entregue nesta etapa:
+
+- **Login e perfis** — sessão por cookie; supervisor e técnico com permissões distintas.  
+- **Atender** — inicia atendimento (`in_progress`); libera **Observações pós-visita** (layout alinhado ao checklist) com rascunho e conclusão.  
+- **Histórico de agendamentos** — acordeão no modal, com autor dos eventos e sem salto de scroll ao abrir.  
+- **Funcionários** (`#usuarios`) — cadastro em popup (login, nome, tipo de acesso), ativar/desativar, resetar senha; senha padrão `TechRoute@123`.  
+- **Meu perfil** (`#perfil`) — editar nome de exibição e alterar senha.  
+- **Filtros da agenda** — acordeão com cliente, técnico (só supervisor), período De/Até e **status com seleção múltipla**.
+
+**Login e perfis (demo)**
+
+| Perfil | Usuário demo | Senha | Acesso |
+|---|---|---|---|
+| Supervisor | `supervisor` | `123456` | Agenda completa, criar/editar, status, ver notas, cadastro de funcionários |
+| Técnico | `ana`, `carlos`, `juliana`, `pedro` | `123456` | Suas visitas, atender, concluir e salvar observações pós-visita |
+
+**Funcionários e perfil**
+
+- Menu **Funcionários** (`#usuarios`): exclusivo do supervisor — cadastra usuários (supervisor/técnico), ativa/desativa e reseta senha.  
+- Senha padrão de novos cadastros: `TechRoute@123` (o usuário pode trocar em **Meu perfil**).  
+- Menu **Meu perfil** (`#perfil`): disponível para todos — editar nome de exibição e alterar senha.
 
 ---
 
@@ -183,6 +211,26 @@ Layout fluido, sem barra de rolagem horizontal.
 
 ## Funcionalidades
 
+### Login e perfis
+
+Login obrigatório (supervisor / técnico) com sessão em cookie HttpOnly.  
+Credenciais demo na própria tela de entrada.
+
+<table>
+<tr>
+<td width="55%" valign="top">
+
+Perfis distintos: o supervisor vê a agenda completa, funcionários e filtros por técnico; o técnico acessa as próprias visitas, **Atender** e observações pós-visita.
+
+</td>
+<td width="45%" valign="top" align="center">
+
+<img src="assets/readme/06-login.png" alt="Tela de login TechRoute com usuários demo" width="380" />
+
+</td>
+</tr>
+</table>
+
 ### Agenda (tela inicial)
 
 - A home do app é a lista de **Visitas**, não uma página separada de formulário.  
@@ -190,6 +238,21 @@ Layout fluido, sem barra de rolagem horizontal.
 - Empty state quando não há visitas ou quando o filtro não retorna resultados.  
 - Alternância entre visão **card** e **lista** (tabela responsiva).  
 - Ordenação do cliente **A–Z** / **Z–A**.
+
+<table>
+<tr>
+<td width="45%" valign="top">
+
+Visão do supervisor: saudação por perfil, lista/tabela de visitas e acordeão de filtros acima da grade.
+
+</td>
+<td width="55%" valign="top" align="center">
+
+<img src="assets/readme/07-agenda-filtros.png" alt="Agenda Visitas com filtros — visão supervisor" width="480" />
+
+</td>
+</tr>
+</table>
 
 ### Inclusão e edição em modal
 
@@ -205,21 +268,87 @@ Layout fluido, sem barra de rolagem horizontal.
 - Itens vindos do catálogo `resources` (seed); seleção múltipla.  
 - Vínculos gravados na tabela de junção `appointment_resources` (N:N com FKs).
 
+<p align="center">
+  <img src="assets/readme/12-checklist-recursos.png" alt="Checklist de recursos no modal da visita" width="720" />
+</p>
+
 ### Filtros da agenda
 
-- **Cliente por nome** — dropdown pesquisável (estilo Select2): digite para filtrar a lista de clientes únicos e selecione um.  
-- **Status** — Todos · Abertas · Reabertas · Remarcadas · Atrasadas · Fechadas · Canceladas.  
-- Filtros combináveis; clique fora ou Escape fecha o painel do filtro de cliente.
+- Acordeão **Filtros** abaixo do título Visitas (campos lado a lado no desktop).  
+- **Cliente por nome** — dropdown pesquisável: digite para filtrar clientes únicos e selecione um.  
+- **Técnico** — apenas na visão do supervisor (“Todos os técnicos” ou técnico específico).  
+- **Período** — De / Até na mesma linha; limpar com ícone **X** sem quebrar o layout.  
+- **Status** — seleção **múltipla** (Abertas, Em atendimento, Reabertas, Remarcadas, Atrasadas, Fechadas, Canceladas).  
+- Filtros combináveis; na visão do técnico a descrição do acordeão omite “técnico”.
 
-### Status e ações da visita
+<p align="center">
+  <img src="assets/readme/08-filtros-acordeao.png" alt="Acordeão de filtros — cliente, período e status" width="820" />
+</p>
 
-- Status exibido com badges: **Aberta**, **Reaberta**, **Remarcada**, **Atrasada**, **Fechada**, **Cancelada**.  
+### Status, Atender e pós-visita
+
+- Status exibido com badges: **Aberta**, **Em atendimento**, **Reaberta**, **Remarcada**, **Atrasada**, **Fechada**, **Cancelada**.  
+- **Atender** (técnico da visita) inicia o atendimento e libera as **Observações pós-visita**.  
 - **Reagendar** abre modal com nova data/horário e **motivo** obrigatório; o evento entra no histórico.  
-- **Concluir** fecha a visita (quando permitido pelo domínio).  
+- **Concluir** fecha a visita (quando permitido pelo domínio), gravando as notas pós-visita.  
 - **Cancelar** abre modal pedindo **motivo**; registra motivo e timestamp.  
 - **Reabrir**: visita **cancelada** → status **Remarcada**; visita **fechada** → status **Reaberta** (motivo obrigatório; histórico preservado).  
-- Em **Visualizar**, a seção **Histórico** lista criação, reagendamentos, cancelamento, reabertura e conclusão com timestamps.  
+- Em **Visualizar**, a seção **Histórico de Agendamentos** (acordeão) lista criação, atendimento, reagendamentos, cancelamento, reabertura e conclusão com timestamps e autor.  
 - Visitas canceladas também mostram o motivo na listagem em cards.
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+Após **Atender**, o técnico registra notas do atendimento (rascunho ou conclusão). Layout alinhado ao checklist de recursos.
+
+</td>
+<td width="50%" valign="top" align="center">
+
+<img src="assets/readme/11-pos-visita.png" alt="Observações pós-visita com salvar rascunho e concluir" width="420" />
+
+</td>
+</tr>
+</table>
+
+### Funcionários (supervisor)
+
+- Menu **Funcionários** (`#usuarios`): cadastrar usuários, tipo de acesso, ativar/desativar e resetar senha.  
+- Cadastro em popup; senha padrão `TechRoute@123`.
+
+<table>
+<tr>
+<td width="40%" valign="top">
+
+Cards por funcionário com papel (Supervisor/Técnico), status Ativo e ações Editar / Resetar senha / Desativar.
+
+</td>
+<td width="60%" valign="top" align="center">
+
+<img src="assets/readme/09-funcionarios.png" alt="Tela Funcionários — cadastro e gestão de usuários" width="520" />
+
+</td>
+</tr>
+</table>
+
+### Meu perfil
+
+- Disponível para todos: editar nome de exibição e alterar senha.
+
+<table>
+<tr>
+<td width="40%" valign="top">
+
+Dados do perfil (login e tipo de acesso somente leitura) + bloco para trocar senha.
+
+</td>
+<td width="60%" valign="top" align="center">
+
+<img src="assets/readme/10-meu-perfil.png" alt="Tela Meu perfil — dados e alteração de senha" width="520" />
+
+</td>
+</tr>
+</table>
 
 ### Catálogos do formulário
 
@@ -262,26 +391,32 @@ Schema e seed: `src/infrastructure/data/schema.js` e `seed.js`.
 | `technicians` | Catálogo de técnicos (seed) |
 | `service_types` | Catálogo de tipos de serviço (seed) |
 | `resources` | Catálogo de materiais, ferramentas e equipamentos (seed) |
-| `appointments` | Visitas agendadas (entidade principal) |
+| `appointments` | Visitas agendadas (status, atendimento, notas pós-visita) |
 | `appointment_resources` | Junção N:N entre visita e recurso (`appointment_id` + `resource_id`) |
+| `appointment_events` | Histórico da visita (criação, atender, reagendar, cancelar, reabrir, concluir) |
+| `users` | Contas de acesso (supervisor / técnico), vínculo opcional com `technicians` |
+| `sessions` | Sessões de login (token HttpOnly + expiração) |
 
 ### Esquema visual (resumo)
 
 <p align="center">
-  <img src="assets/readme/05-db-schema.png" alt="Diagrama ER TechRoute — technicians, service_types, resources, appointments e appointment_resources" width="920" />
+  <img src="assets/readme/05-db-schema.png" alt="Diagrama ER TechRoute v3.1 — users, sessions, technicians, service_types, appointments, appointment_events, appointment_resources e resources" width="920" />
 </p>
 
 ### Cardinalidade
 
 | Relação | Tipo | Regra |
 |---|---|---|
+| `users` → `sessions` | 1:N | Um usuário pode ter várias sessões (`user_id` FK) |
+| `technicians` → `users` | 1:0..1 | Usuário técnico pode apontar para um técnico do catálogo |
 | `technicians` → `appointments` | 1:N | Um técnico pode ter várias visitas (`technician_id` FK) |
 | `service_types` → `appointments` | 1:N | Um tipo classifica várias visitas (`service_type_id` FK) |
+| `appointments` → `appointment_events` | 1:N | Uma visita tem vários eventos de histórico |
 | `appointments` → `appointment_resources` | 1:N | Uma visita pode ter vários vínculos de recurso |
 | `resources` → `appointment_resources` | 1:N | Um recurso pode estar em várias visitas |
 | `resources` ↔ `appointments` | N:N | Via tabela de junção `appointment_resources` (FKs + PK composta) |
 
-Integridade referencial via `FOREIGN KEY` no SQLite (técnico, tipo, visita↔recurso).
+Integridade referencial via `FOREIGN KEY` no SQLite (usuário↔sessão, técnico, tipo, visita↔evento/recurso).
 
 ---
 
@@ -304,7 +439,7 @@ npm start
 | `npm run dev` | Sobe com `--watch` (reinicia ao salvar) |
 | `npm test` | Roda os testes do domínio / casos de uso |
 
-> O banco SQLite é criado automaticamente em `data/techroute.db` na primeira execução, com seed de técnicos, tipos de serviço e recursos.
+> O banco SQLite é criado automaticamente em `data/techroute.db` na primeira execução, com seed de técnicos, tipos de serviço, recursos e usuários demo.
 
 ---
 
@@ -312,31 +447,33 @@ npm start
 
 ```text
 /
-├── public/                          # Interface (HTML, CSS, JS)
+├── public/                              # Interface (HTML, CSS, JS)
 │   ├── css/layout.css
-│   ├── design-system/               # Tokens e componentes Lime Night (cópia para runtime)
+│   ├── design-system/                   # Tokens e componentes Lime Night
 │   ├── index.html
 │   └── js/
-│       ├── api/                     # HTTP, appointments, catalog
-│       ├── components/              # app-shell, field, banner, ícones
-│       └── pages/schedule-form.js   # Home Visitas + modais
+│       ├── api/                         # http, auth, appointments, catalog, users
+│       ├── components/                  # app-shell, field, banner, ícones
+│       └── pages/                       # schedule-form, users-admin, profile
 ├── src/
 │   ├── core/
-│   │   ├── entities/                # Appointment, Technician, ServiceType, Resource
-│   │   ├── value-objects/
+│   │   ├── entities/                    # Appointment, AppointmentEvent, Technician…
+│   │   ├── value-objects/               # VisitStatus, VisitSlot, Phone, Email…
 │   │   ├── repositories/contracts.js
 │   │   └── common/Result.js
 │   ├── application/
-│   │   ├── services/                # Register, Update, Cancel, Close, Allocate, List…
+│   │   ├── services/                    # Login, Atender, Close, Users, List…
+│   │   ├── common/                      # actor, defaultPassword
 │   │   ├── input-models/
 │   │   └── view-models/
 │   ├── infrastructure/
-│   │   ├── data/                    # connection, schema, seed
-│   │   └── repositories/            # Sqlite* (incl. SqliteResourceRepository)
-│   └── api/                         # Express, controllers, composition
-├── tests/                           # Domínio e casos de uso (incl. AllocateResources)
-├── assets/readme/                   # Imagens do README publicado
-├── data/                            # Banco local (.db ignorado no git)
+│   │   ├── data/                        # connection, schema, seed
+│   │   ├── repositories/                # SqliteAppointment/User/Session…
+│   │   └── security/password.js
+│   └── api/                             # Express, middleware auth, controllers
+├── tests/                               # Domínio e casos de uso (Login, Atender…)
+├── assets/readme/                       # Imagens do README publicado
+├── data/                                # Banco local (.db ignorado no git)
 └── package.json
 ```
 
