@@ -3,6 +3,7 @@ const SIDEBAR_KEY = "techroute-sidebar";
 
 const icons = {
   calendar: `<svg class="ds-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>`,
+  dashboard: `<svg class="ds-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="7" height="7" rx="1"></rect><rect x="14" y="4" width="7" height="7" rx="1"></rect><rect x="3" y="13" width="7" height="7" rx="1"></rect><rect x="14" y="13" width="7" height="7" rx="1"></rect></svg>`,
   list: `<svg class="ds-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path></svg>`,
   resources: `<svg class="ds-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>`,
   check: `<svg class="ds-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>`,
@@ -58,7 +59,7 @@ function currentHash() {
   if (hash === "#agendar" || hash === "#recursos") {
     return "#visitas";
   }
-  if (hash === "#usuarios" || hash === "#perfil" || hash === "#visitas") {
+  if (hash === "#usuarios" || hash === "#perfil" || hash === "#visitas" || hash === "#painel") {
     return hash;
   }
   return "#visitas";
@@ -113,7 +114,11 @@ function navMarkup(user) {
       </a>
       ${
         isSupervisor
-          ? `<a class="app-nav__link ds-tooltip ds-tooltip--right" href="#usuarios" data-tooltip="Funcionários" ${hash === "#usuarios" ? 'aria-current="page"' : ""}>
+          ? `<a class="app-nav__link ds-tooltip ds-tooltip--right" href="#painel" data-tooltip="Painel semanal" ${hash === "#painel" ? 'aria-current="page"' : ""}>
+              ${icons.dashboard}
+              <span class="app-nav__label">Painel</span>
+            </a>
+            <a class="app-nav__link ds-tooltip ds-tooltip--right" href="#usuarios" data-tooltip="Funcionários" ${hash === "#usuarios" ? 'aria-current="page"' : ""}>
               ${icons.users}
               <span class="app-nav__label">Funcionários</span>
             </a>`

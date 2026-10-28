@@ -11,8 +11,8 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/entreg%C3%A1veis-4-ccff00?style=flat-square&labelColor=0b0c0f" alt="4 entregáveis" />
-  <img src="https://img.shields.io/badge/etapa-v3.1%20Submetida-ccff00?style=flat-square&labelColor=0b0c0f" alt="Etapa v3.1 Submetida" />
-  <img src="https://img.shields.io/badge/pr%C3%B3xima-4.1%20Filtros%20Dashboard-0b0c0f?style=flat-square" alt="Próxima etapa" />
+  <img src="https://img.shields.io/badge/etapa-v4.1%20Submetida-ccff00?style=flat-square&labelColor=0b0c0f" alt="Etapa v4.1 Submetida" />
+  <img src="https://img.shields.io/badge/pr%C3%B3xima-4.2%20Dashboard%20Calend%C3%A1rio-0b0c0f?style=flat-square" alt="Próxima etapa" />
   <img src="https://img.shields.io/badge/auth-login%20%2B%20perfis-0b0c0f?style=flat-square" alt="Auth" />
   <img src="https://img.shields.io/badge/stack-HTML%20%7C%20CSS%20%7C%20JS-0b0c0f?style=flat-square" alt="Stack" />
   <img src="https://img.shields.io/badge/backend-Node.js%20%2B%20Express-0b0c0f?style=flat-square" alt="Backend" />
@@ -38,7 +38,8 @@ A **inclusão de dados** (nova visita) e a **edição / visualização** acontec
 3. Visualizar (olho) abre o mesmo modal em modo leitura; a partir dele é possível editar.  
 4. No formulário, o **Checklist de recursos** permite marcar materiais, ferramentas e equipamentos da visita.  
 5. Cancelar ou **Reagendar** visita também usam modal (motivo obrigatório).  
-6. Login por perfil (supervisor/técnico), **Atender** + observações pós-visita, **Funcionários** e **Meu perfil**.
+6. Login por perfil (supervisor/técnico), **Atender** + observações pós-visita, **Funcionários** e **Meu perfil**.  
+7. **Painel semanal** (`#painel`) — exclusivo do supervisor: filtros multi-técnico, KPIs e gráficos.
 
 Foco do produto:
 
@@ -47,6 +48,7 @@ Foco do produto:
 - listagem e gestão das visitas (status, visualização, edição, reagendamento, cancelamento, conclusão, atendimento);
 - autenticação com perfis, cadastro de funcionários e administração de perfil/senha;
 - alocação de recursos (checklist no modal da visita);
+- painel semanal com indicadores e gráficos (supervisor);
 - interface responsiva (mobile → desktop);
 - temas **claro** e **escuro** com a identidade **Lime Night**;
 - backend em Node.js com persistência em **SQLite**;
@@ -132,13 +134,25 @@ Entregue nesta etapa:
 
 | Tarefa | Descrição | Status | Tag sugerida |
 |---|---|---|---|
-| **4.1** Sistema de Filtros do Dashboard | Filtros por técnico e status no dashboard | Pendente | `v4.1` |
+| **4.1** Sistema de Filtros do Dashboard | Painel exclusivo do supervisor (`#painel`): multi-técnicos, período, status, KPIs e gráficos | Submetida | `v4.1` |
 | **4.2** Implementação do Dashboard Calendário | Visão em calendário das visitas agendadas da semana atual e da próxima | Pendente | `v4.2` |
 
 **Critérios de aceite — 4.1**
 
-- Deve ser possível combinar múltiplos filtros  
+- Acesso apenas para perfil **supervisor** (técnico não vê o menu nem a rota)  
+- Deve ser possível combinar múltiplos filtros (incluindo **vários técnicos**)  
+- Dashboard exibe **indicadores (KPIs)** e **gráficos** das visitas filtradas  
 - Filtros devem funcionar corretamente e ser intuitivos  
+
+**Entrega v4.1 (Submetida — aprovação)**
+
+Entregue nesta etapa:
+
+- **Painel semanal** (`#painel`) — menu e rota visíveis **somente ao supervisor**.  
+- **Filtros combináveis** — um ou mais técnicos, período (De/Até) e status múltiplo; atalhos **Semana atual** / **Próxima semana**.  
+- **Indicadores (KPIs)** — total, abertas, em atendimento, atrasadas, remarcadas, fechadas e canceladas.  
+- **Gráficos** — visitas por status, carga por técnico e distribuição por dia da semana (Lime Night, CSS nativo).  
+- Seed de visitas demo alinhado à semana corrente e à próxima para validar o painel.
 
 **Critérios de aceite — 4.2**
 
@@ -350,6 +364,16 @@ Dados do perfil (login e tipo de acesso somente leitura) + bloco para trocar sen
 </tr>
 </table>
 
+### Painel semanal (supervisor)
+
+- Menu **Painel** (`#painel`): exclusivo do supervisor — técnico não vê o item nem acessa a rota.  
+- Filtros: **um ou mais técnicos**, período De/Até e status múltiplo; atalhos para semana atual e próxima.  
+- **KPIs** no topo (total e por status) e **gráficos** de status, carga por técnico e distribuição por dia da semana.
+
+<p align="center">
+  <img src="assets/readme/13-painel-semanal.png" alt="Painel semanal — KPIs e gráficos com filtros de técnicos, período e status" width="920" />
+</p>
+
 ### Catálogos do formulário
 
 - **Tipos de serviço** em cards selecionáveis com ícones (Instalação, Manutenção, Reparo, Vistoria).  
@@ -454,7 +478,7 @@ npm start
 │   └── js/
 │       ├── api/                         # http, auth, appointments, catalog, users
 │       ├── components/                  # app-shell, field, banner, ícones
-│       └── pages/                       # schedule-form, users-admin, profile
+│       └── pages/                       # schedule-form, weekly-dashboard, users-admin, profile
 ├── src/
 │   ├── core/
 │   │   ├── entities/                    # Appointment, AppointmentEvent, Technician…

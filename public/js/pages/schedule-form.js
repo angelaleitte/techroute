@@ -25,6 +25,7 @@ import {
 import { serviceTypeIcon } from "../components/service-icons.js";
 import { mountProfile } from "./profile.js";
 import { mountUsersAdmin } from "./users-admin.js";
+import { mountWeeklyDashboard } from "./weekly-dashboard.js";
 
 const emptyValues = {
   clientName: "",
@@ -2037,6 +2038,9 @@ function currentAppRoute() {
   if (hash === "#perfil") {
     return "profile";
   }
+  if (hash === "#painel") {
+    return "dashboard";
+  }
   return "visits";
 }
 
@@ -2076,6 +2080,17 @@ function renderPage(root) {
         refreshAppShellUser(user);
       },
     });
+    return;
+  }
+
+  if (route === "dashboard") {
+    if (!isSupervisor()) {
+      history.replaceState(null, "", `${window.location.pathname}${window.location.search}#visitas`);
+      renderPage(root);
+      return;
+    }
+    document.body.classList.remove("is-modal-open");
+    void mountWeeklyDashboard(root, { user: state.user });
     return;
   }
 
