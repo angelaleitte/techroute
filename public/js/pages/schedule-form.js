@@ -23,6 +23,15 @@ import {
   renderSelectField,
 } from "../components/field.js";
 import { serviceTypeIcon } from "../components/service-icons.js";
+import {
+  clearVisitDetailPortal,
+  paintVisitDetailPortal,
+} from "../components/visit-detail-modal.js";
+import {
+  expandRangeToAppointmentMonths,
+  renderMonthCalendar,
+  renderWeekCalendar,
+} from "../components/week-calendar.js";
 import { mountProfile } from "./profile.js";
 import { mountUsersAdmin } from "./users-admin.js";
 import { mountWeeklyDashboard } from "./weekly-dashboard.js";
@@ -92,6 +101,8 @@ const state = {
   filtersOpen: true,
   sortDir: "az",
   viewMode: "card",
+  calendarMonthIndex: 0,
+  detailAppointment: null,
   statusMenuOpen: false,
   formOpen: false,
   formMode: "create",
@@ -356,6 +367,8 @@ const actionIcons = {
   sortZa: `<svg class="ds-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h4M3 12h7M3 17h10"></path><path d="m15 17 3 3 3-3M18 4v16"></path></svg>`,
   cards: `<svg class="ds-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg>`,
   list: `<svg class="ds-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"></path></svg>`,
+  calendar: `<svg class="ds-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>`,
+  month: `<svg class="ds-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"></rect><path d="M3 9h18M8 2v4M16 2v4M8 13h3M13 13h3M8 17h3M13 17h3"></path></svg>`,
   statusAll: `<svg class="ds-icon ds-icon--sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M8 12h8"></path></svg>`,
   statusOpen: `<svg class="ds-icon ds-icon--sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle></svg>`,
   statusLate: `<svg class="ds-icon ds-icon--sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>`,
@@ -1024,6 +1037,28 @@ function renderVisitsToolbar() {
           >
             ${actionIcons.list}
           </button>
+          <button
+            class="app-visits__tool-btn ds-tooltip${state.viewMode === "calendar" ? " is-active" : ""}"
+            type="button"
+            data-action="set-view-mode"
+            data-mode="calendar"
+            data-tooltip="Modo semanas"
+            aria-label="Modo semanas"
+            aria-pressed="${state.viewMode === "calendar" ? "true" : "false"}"
+          >
+            ${actionIcons.calendar}
+          </button>
+          <button
+            class="app-visits__tool-btn ds-tooltip${state.viewMode === "month" ? " is-active" : ""}"
+            type="button"
+            data-action="set-view-mode"
+            data-mode="month"
+            data-tooltip="Modo mês"
+            aria-label="Modo mês"
+            aria-pressed="${state.viewMode === "month" ? "true" : "false"}"
+          >
+            ${actionIcons.month}
+          </button>
         </div>
       </div>
     </section>
@@ -1044,6 +1079,23 @@ function renderVisitsSection() {
     body = `<p class="app-empty">Nenhuma visita encontrada com estes filtros.</p>`;
   } else if (state.viewMode === "list") {
     body = renderVisitTable(visible);
+  } else if (state.viewMode === "calendar") {
+    body = renderWeekCalendar({
+      appointments: visible,
+      interactive: true,
+      showTechnician: isSupervisor(),
+      dateFrom: state.dateFrom,
+      dateTo: state.dateTo,
+    });
+  } else if (state.viewMode === "month") {
+    body = renderMonthCalendar({
+      appointments: visible,
+      interactive: true,
+      showTechnician: isSupervisor(),
+      dateFrom: state.dateFrom,
+      dateTo: state.dateTo,
+      activeMonthIndex: state.calendarMonthIndex,
+    });
   } else {
     body = `<div class="app-visit-list">${visible.map(renderVisitCard).join("")}</div>`;
   }
@@ -2066,12 +2118,16 @@ function renderPage(root) {
       renderPage(root);
       return;
     }
+    state.detailAppointment = null;
+    clearVisitDetailPortal();
     document.body.classList.remove("is-modal-open");
     void mountUsersAdmin(root, { currentUserId: state.user.id });
     return;
   }
 
   if (route === "profile") {
+    state.detailAppointment = null;
+    clearVisitDetailPortal();
     document.body.classList.remove("is-modal-open");
     void mountProfile(root, {
       user: state.user,
@@ -2089,6 +2145,8 @@ function renderPage(root) {
       renderPage(root);
       return;
     }
+    state.detailAppointment = null;
+    clearVisitDetailPortal();
     document.body.classList.remove("is-modal-open");
     void mountWeeklyDashboard(root, { user: state.user });
     return;
@@ -2096,6 +2154,7 @@ function renderPage(root) {
 
   const modalOpen =
     state.formOpen ||
+    Boolean(state.detailAppointment) ||
     Boolean(state.cancelTarget) ||
     Boolean(state.rescheduleTarget) ||
     Boolean(state.reopenTarget) ||
@@ -2112,6 +2171,7 @@ function renderPage(root) {
     ${renderReopenModal()}
     ${renderCloseModal()}
   `;
+  paintVisitDetailPortal(state.detailAppointment);
 
   bindPage(root);
 }
@@ -2324,6 +2384,7 @@ function bindPage(root) {
 
   root.querySelector("#dateFromFilter")?.addEventListener("change", (event) => {
     state.dateFrom = event.target.value || "";
+    state.calendarMonthIndex = 0;
     state.clientFilterOpen = false;
     state.technicianFilterOpen = false;
     state.statusMenuOpen = false;
@@ -2332,6 +2393,7 @@ function bindPage(root) {
 
   root.querySelector("#dateToFilter")?.addEventListener("change", (event) => {
     state.dateTo = event.target.value || "";
+    state.calendarMonthIndex = 0;
     state.clientFilterOpen = false;
     state.technicianFilterOpen = false;
     state.statusMenuOpen = false;
@@ -2446,6 +2508,7 @@ async function handlePageAction(root, event) {
   if (action === "clear-date-range") {
     state.dateFrom = "";
     state.dateTo = "";
+    state.calendarMonthIndex = 0;
     state.clientFilterOpen = false;
     state.technicianFilterOpen = false;
     state.statusMenuOpen = false;
@@ -2549,9 +2612,45 @@ async function handlePageAction(root, event) {
   }
 
   if (action === "set-view-mode") {
-    state.viewMode = actionEl.dataset.mode === "list" ? "list" : "card";
+    const mode = actionEl.dataset.mode;
+    state.viewMode =
+      mode === "list" || mode === "calendar" || mode === "month" ? mode : "card";
+    if (state.viewMode === "month") {
+      const expanded = expandRangeToAppointmentMonths({
+        dateFrom: state.dateFrom,
+        dateTo: state.dateTo,
+        appointments: state.appointments,
+      });
+      state.dateFrom = expanded.from;
+      state.dateTo = expanded.to;
+      state.calendarMonthIndex = 0;
+    }
+    if (state.viewMode !== "calendar" && state.viewMode !== "month") {
+      state.detailAppointment = null;
+    }
     state.statusMenuOpen = false;
     renderPage(root);
+    return;
+  }
+
+  if (action === "calendar-month-prev") {
+    state.calendarMonthIndex = Math.max(0, state.calendarMonthIndex - 1);
+    renderPage(root);
+    return;
+  }
+
+  if (action === "calendar-month-next") {
+    state.calendarMonthIndex += 1;
+    renderPage(root);
+    return;
+  }
+
+  if (action === "calendar-month-goto") {
+    const nextIndex = Number(actionEl.dataset.monthIndex);
+    if (Number.isFinite(nextIndex)) {
+      state.calendarMonthIndex = nextIndex;
+      renderPage(root);
+    }
     return;
   }
 
@@ -2652,11 +2751,26 @@ async function handlePageAction(root, event) {
   }
 
   if (action === "view-visit") {
-    const appointment = state.appointments.find((item) => item.id === id);
+    const appointmentId = id || actionEl.dataset.visitOpen;
+    const appointment = state.appointments.find((item) => item.id === appointmentId);
     if (!appointment) {
       return;
     }
-    openView(appointment);
+    if (state.viewMode === "calendar" || state.viewMode === "month") {
+      state.detailAppointment = appointment;
+      state.statusMenuOpen = false;
+      state.clientFilterOpen = false;
+      state.technicianFilterOpen = false;
+    } else {
+      state.detailAppointment = null;
+      openView(appointment);
+    }
+    renderPage(root);
+    return;
+  }
+
+  if (action === "close-visit-detail") {
+    state.detailAppointment = null;
     renderPage(root);
     return;
   }
@@ -3097,6 +3211,18 @@ function boot() {
   page.addEventListener("click", (event) => {
     void handlePageAction(page, event);
   });
+  document.addEventListener("click", (event) => {
+    const closeEl = event.target.closest("[data-action='close-visit-detail']");
+    if (!(closeEl instanceof HTMLElement) || !state.detailAppointment) {
+      return;
+    }
+    // Portal fica fora de #app-page; fecha a modal de detalhe do calendário.
+    if (window.location.hash === "#painel") {
+      return;
+    }
+    state.detailAppointment = null;
+    renderPage(page);
+  });
   window.addEventListener("hashchange", () => {
     if (!state.user) {
       renderPage(page);
@@ -3118,6 +3244,11 @@ function boot() {
   });
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") {
+      return;
+    }
+    if (state.detailAppointment) {
+      state.detailAppointment = null;
+      renderPage(page);
       return;
     }
     if (state.cancelTarget) {

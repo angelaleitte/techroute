@@ -2,6 +2,15 @@ import { fetchAppointments } from "../api/appointments.js";
 import { fetchTechnicians } from "../api/catalog.js";
 import { renderBanner } from "../components/banner.js";
 import { escapeHtml } from "../components/field.js";
+import {
+  clearVisitDetailPortal,
+  paintVisitDetailPortal,
+} from "../components/visit-detail-modal.js";
+import {
+  expandRangeToAppointmentMonths,
+  renderMonthCalendar,
+  renderWeekCalendar,
+} from "../components/week-calendar.js";
 
 const STATUS_FILTERS = [
   { id: "all", label: "Todos os status" },
@@ -38,6 +47,9 @@ const WEEKDAY_LABELS = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 
 const icons = {
   filter: `<svg class="ds-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3Z"></path></svg>`,
+  charts: `<svg class="ds-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5M4 19h16"></path><path d="M8 17V10M13 17V7M18 17v-4"></path></svg>`,
+  calendar: `<svg class="ds-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>`,
+  month: `<svg class="ds-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"></rect><path d="M3 9h18M8 2v4M16 2v4M8 13h3M13 13h3M8 17h3M13 17h3"></path></svg>`,
   statusAll: `<svg class="ds-icon ds-icon--sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M8 12h8"></path></svg>`,
   statusOpen: `<svg class="ds-icon ds-icon--sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle></svg>`,
   statusLate: `<svg class="ds-icon ds-icon--sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>`,
@@ -144,6 +156,9 @@ export async function mountWeeklyDashboard(root, { user } = {}) {
     dateTo: week.to,
     statusFilter: [],
     statusMenuOpen: false,
+    viewMode: "charts",
+    calendarMonthIndex: 0,
+    detailAppointment: null,
   };
 
   function hasStatusFilter() {
@@ -513,6 +528,39 @@ export async function mountWeeklyDashboard(root, { user } = {}) {
             <button class="ds-btn ds-btn--secondary ds-btn--sm" type="button" data-action="set-week-next">
               Próxima semana
             </button>
+            <button
+              class="app-visits__tool-btn ds-tooltip${state.viewMode === "charts" ? " is-active" : ""}"
+              type="button"
+              data-action="set-view-mode"
+              data-mode="charts"
+              data-tooltip="Modo indicadores"
+              aria-label="Modo indicadores"
+              aria-pressed="${state.viewMode === "charts" ? "true" : "false"}"
+            >
+              ${icons.charts}
+            </button>
+            <button
+              class="app-visits__tool-btn ds-tooltip${state.viewMode === "calendar" ? " is-active" : ""}"
+              type="button"
+              data-action="set-view-mode"
+              data-mode="calendar"
+              data-tooltip="Modo semanas"
+              aria-label="Modo semanas"
+              aria-pressed="${state.viewMode === "calendar" ? "true" : "false"}"
+            >
+              ${icons.calendar}
+            </button>
+            <button
+              class="app-visits__tool-btn ds-tooltip${state.viewMode === "month" ? " is-active" : ""}"
+              type="button"
+              data-action="set-view-mode"
+              data-mode="month"
+              data-tooltip="Modo mês"
+              aria-label="Modo mês"
+              aria-pressed="${state.viewMode === "month" ? "true" : "false"}"
+            >
+              ${icons.month}
+            </button>
           </div>
         </div>
       </section>
@@ -649,17 +697,49 @@ export async function mountWeeklyDashboard(root, { user } = {}) {
     `;
   }
 
+  function renderCalendarBody(visible) {
+    const options = {
+      appointments: visible,
+      interactive: true,
+      showTechnician: true,
+      dateFrom: state.dateFrom,
+      dateTo: state.dateTo,
+    };
+    if (state.viewMode === "month") {
+      return renderMonthCalendar({
+        ...options,
+        activeMonthIndex: state.calendarMonthIndex,
+      });
+    }
+    return renderWeekCalendar(options);
+  }
+
   function paint() {
     const visible = filteredAppointments();
     const analytics = buildAnalytics(visible);
+    const isCalendar = state.viewMode === "calendar" || state.viewMode === "month";
+    const title =
+      state.viewMode === "month"
+        ? "Calendário mensal"
+        : state.viewMode === "calendar"
+          ? "Calendário por semanas"
+          : "Indicadores e análises";
+    const subtitle =
+      state.viewMode === "month"
+        ? "Clique em uma visita para ver os detalhes. Navegue pelos meses do período no carrossel."
+        : state.viewMode === "calendar"
+          ? "Clique em uma visita para ver os detalhes. O período filtrado é dividido em semanas."
+          : "Selecione um ou mais técnicos, defina o período e acompanhe KPIs e gráficos das visitas.";
+
+    document.body.classList.toggle("is-modal-open", Boolean(state.detailAppointment));
 
     host.innerHTML = `
       <section class="app-dashboard" aria-labelledby="dashboard-title">
         <header class="app-dashboard__header">
           <div>
             <p class="ds-eyebrow">Painel semanal</p>
-            <h1 class="ds-title" id="dashboard-title">Indicadores e análises</h1>
-            <p class="ds-small">Selecione um ou mais técnicos, defina o período e acompanhe KPIs e gráficos das visitas.</p>
+            <h1 class="ds-title" id="dashboard-title">${title}</h1>
+            <p class="ds-small">${subtitle}</p>
           </div>
           <span class="ds-badge ds-badge--subtle">${analytics.total} visita${analytics.total === 1 ? "" : "s"}</span>
         </header>
@@ -670,10 +750,13 @@ export async function mountWeeklyDashboard(root, { user } = {}) {
         ${
           state.loading
             ? `<p class="app-empty">Carregando indicadores…</p>`
-            : `${renderKpis(analytics)}${renderCharts(analytics)}`
+            : isCalendar
+              ? renderCalendarBody(visible)
+              : `${renderKpis(analytics)}${renderCharts(analytics)}`
         }
       </section>
     `;
+    paintVisitDetailPortal(state.detailAppointment);
   }
 
   function closeMenus() {
@@ -734,18 +817,21 @@ export async function mountWeeklyDashboard(root, { user } = {}) {
       if (action === "clear-date-range") {
         state.dateFrom = "";
         state.dateTo = "";
+        state.calendarMonthIndex = 0;
         paint();
         return;
       }
 
       if (action === "set-week-current") {
         setWeekRange(0);
+        state.calendarMonthIndex = 0;
         paint();
         return;
       }
 
       if (action === "set-week-next") {
         setWeekRange(1);
+        state.calendarMonthIndex = 0;
         paint();
         return;
       }
@@ -760,7 +846,71 @@ export async function mountWeeklyDashboard(root, { user } = {}) {
       if (action === "set-status-filter") {
         setStatusFilter(target.getAttribute("data-status") || "all");
         paint();
+        return;
       }
+
+      if (action === "set-view-mode") {
+        const requested = target.getAttribute("data-mode");
+        state.viewMode =
+          requested === "calendar" || requested === "month" ? requested : "charts";
+        if (state.viewMode === "month") {
+          const expanded = expandRangeToAppointmentMonths({
+            dateFrom: state.dateFrom,
+            dateTo: state.dateTo,
+            appointments: state.appointments,
+          });
+          state.dateFrom = expanded.from;
+          state.dateTo = expanded.to;
+          state.calendarMonthIndex = 0;
+        }
+        paint();
+        return;
+      }
+
+      if (action === "calendar-month-prev") {
+        state.calendarMonthIndex = Math.max(0, state.calendarMonthIndex - 1);
+        paint();
+        return;
+      }
+
+      if (action === "calendar-month-next") {
+        state.calendarMonthIndex += 1;
+        paint();
+        return;
+      }
+
+      if (action === "calendar-month-goto") {
+        const nextIndex = Number(target.getAttribute("data-month-index"));
+        if (Number.isFinite(nextIndex)) {
+          state.calendarMonthIndex = nextIndex;
+          paint();
+        }
+        return;
+      }
+
+      if (action === "view-visit") {
+        const appointmentId = target.getAttribute("data-id") || target.getAttribute("data-visit-open");
+        const appointment = state.appointments.find((item) => item.id === appointmentId);
+        if (!appointment) {
+          return;
+        }
+        state.detailAppointment = appointment;
+        closeMenus();
+        paint();
+        return;
+      }
+    });
+
+    document.addEventListener("click", (event) => {
+      if (!host.isConnected) {
+        return;
+      }
+      const target = event.target.closest("[data-action='close-visit-detail']");
+      if (!(target instanceof HTMLElement)) {
+        return;
+      }
+      state.detailAppointment = null;
+      paint();
     });
 
     host.addEventListener("change", (event) => {
@@ -773,6 +923,7 @@ export async function mountWeeklyDashboard(root, { user } = {}) {
         if (state.dateTo && state.dateFrom && state.dateFrom > state.dateTo) {
           state.dateTo = state.dateFrom;
         }
+        state.calendarMonthIndex = 0;
         paint();
         return;
       }
@@ -781,6 +932,7 @@ export async function mountWeeklyDashboard(root, { user } = {}) {
         if (state.dateFrom && state.dateTo && state.dateTo < state.dateFrom) {
           state.dateFrom = state.dateTo;
         }
+        state.calendarMonthIndex = 0;
         paint();
       }
     });
@@ -800,7 +952,30 @@ export async function mountWeeklyDashboard(root, { user } = {}) {
       },
       true,
     );
+
+    document.addEventListener("keydown", (event) => {
+      if (!host.isConnected || event.key !== "Escape") {
+        return;
+      }
+      if (state.detailAppointment) {
+        state.detailAppointment = null;
+        paint();
+        return;
+      }
+      if (closeMenus()) {
+        paint();
+      }
+    });
   }
+
+  // Limpa portal ao desmontar (navegação para outra rota).
+  const observer = new MutationObserver(() => {
+    if (!host.isConnected) {
+      clearVisitDetailPortal();
+      observer.disconnect();
+    }
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
 
   async function load() {
     state.loading = true;

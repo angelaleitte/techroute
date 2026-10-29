@@ -11,8 +11,8 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/entreg%C3%A1veis-4-ccff00?style=flat-square&labelColor=0b0c0f" alt="4 entregáveis" />
-  <img src="https://img.shields.io/badge/etapa-v4.1%20Submetida-ccff00?style=flat-square&labelColor=0b0c0f" alt="Etapa v4.1 Submetida" />
-  <img src="https://img.shields.io/badge/pr%C3%B3xima-4.2%20Dashboard%20Calend%C3%A1rio-0b0c0f?style=flat-square" alt="Próxima etapa" />
+  <img src="https://img.shields.io/badge/etapa-v4.2%20Submetida-ccff00?style=flat-square&labelColor=0b0c0f" alt="Etapa v4.2 Submetida" />
+  <img src="https://img.shields.io/badge/pr%C3%B3xima-entrega%204%20completa-0b0c0f?style=flat-square" alt="Próxima etapa" />
   <img src="https://img.shields.io/badge/auth-login%20%2B%20perfis-0b0c0f?style=flat-square" alt="Auth" />
   <img src="https://img.shields.io/badge/stack-HTML%20%7C%20CSS%20%7C%20JS-0b0c0f?style=flat-square" alt="Stack" />
   <img src="https://img.shields.io/badge/backend-Node.js%20%2B%20Express-0b0c0f?style=flat-square" alt="Backend" />
@@ -39,7 +39,8 @@ A **inclusão de dados** (nova visita) e a **edição / visualização** acontec
 4. No formulário, o **Checklist de recursos** permite marcar materiais, ferramentas e equipamentos da visita.  
 5. Cancelar ou **Reagendar** visita também usam modal (motivo obrigatório).  
 6. Login por perfil (supervisor/técnico), **Atender** + observações pós-visita, **Funcionários** e **Meu perfil**.  
-7. **Painel semanal** (`#painel`) — exclusivo do supervisor: filtros multi-técnico, KPIs e gráficos.
+7. **Painel semanal** (`#painel`) — exclusivo do supervisor: filtros multi-técnico, KPIs, gráficos e calendário.  
+8. Visões **semanas** e **mês** (carrossel) na agenda e no painel; clique na visita abre modal de detalhes.
 
 Foco do produto:
 
@@ -48,7 +49,8 @@ Foco do produto:
 - listagem e gestão das visitas (status, visualização, edição, reagendamento, cancelamento, conclusão, atendimento);
 - autenticação com perfis, cadastro de funcionários e administração de perfil/senha;
 - alocação de recursos (checklist no modal da visita);
-- painel semanal com indicadores e gráficos (supervisor);
+- painel semanal com indicadores, gráficos e calendário (supervisor);
+- calendário por semanas e por mês (carrossel), com status coloridos e modal de detalhes;
 - interface responsiva (mobile → desktop);
 - temas **claro** e **escuro** com a identidade **Lime Night**;
 - backend em Node.js com persistência em **SQLite**;
@@ -135,7 +137,7 @@ Entregue nesta etapa:
 | Tarefa | Descrição | Status | Tag sugerida |
 |---|---|---|---|
 | **4.1** Sistema de Filtros do Dashboard | Painel exclusivo do supervisor (`#painel`): multi-técnicos, período, status, KPIs e gráficos | Submetida | `v4.1` |
-| **4.2** Implementação do Dashboard Calendário | Visão em calendário das visitas agendadas da semana atual e da próxima | Pendente | `v4.2` |
+| **4.2** Implementação do Dashboard Calendário | Calendário por semanas e por mês (carrossel) no painel e na agenda; status coloridos; modal ao clicar na visita | Submetida | `v4.2` |
 
 **Critérios de aceite — 4.1**
 
@@ -158,6 +160,16 @@ Entregue nesta etapa:
 
 - Indicadores de status coloridos devem estar presentes  
 - Deve exibir visitas agendadas de forma clara e organizada  
+
+**Entrega v4.2 (Submetida — aprovação)**
+
+Entregue nesta etapa:
+
+- Toggle **semanas** e **mês** na toolbar de **Visitas** e do **Painel**.  
+- **Calendário por semanas** — o período do filtro gera **todas as semanas** (uma linha cada), com chips de visita e badges de status.  
+- **Calendário por mês (carrossel)** — um mês por slide, com Anterior/Próximo, pontos e atalhos por nome do mês.  
+- **Modal de detalhes** — clique na visita no calendário abre os dados completos (cliente, contatos, data/hora, técnico, serviço, notas, recursos e status).  
+- Legenda de status coloridos (aberta/remarcada, atendimento/atrasada, fechada, cancelada).
 
 ---
 
@@ -368,11 +380,51 @@ Dados do perfil (login e tipo de acesso somente leitura) + bloco para trocar sen
 
 - Menu **Painel** (`#painel`): exclusivo do supervisor — técnico não vê o item nem acessa a rota.  
 - Filtros: **um ou mais técnicos**, período De/Até e status múltiplo; atalhos para semana atual e próxima.  
-- **KPIs** no topo (total e por status) e **gráficos** de status, carga por técnico e distribuição por dia da semana.
+- **KPIs** no topo (total e por status) e **gráficos** de status, carga por técnico e distribuição por dia da semana.  
+- Alternância de visão: **indicadores**, **semanas** e **mês** (carrossel).
 
 <p align="center">
   <img src="assets/readme/13-painel-semanal.png" alt="Painel semanal — KPIs e gráficos com filtros de técnicos, período e status" width="920" />
 </p>
+
+### Calendário por semanas
+
+- Disponível em **Visitas** e no **Painel**.  
+- O intervalo De/Até é dividido em semanas (cada uma em uma linha), com visitas por dia e status coloridos.  
+- Clique no chip da visita para abrir a **modal de detalhes**.
+
+<p align="center">
+  <img src="assets/readme/14-calendario-semanas.png" alt="Calendário por semanas — semana atual e próxima com visitas e status coloridos" width="920" />
+</p>
+
+### Calendário por mês (carrossel)
+
+- Grade mensal completa (seg–dom) com todos os agendamentos do dia.  
+- Navegação em **carrossel**: Anterior / Próximo, contador, pontos e chips com o nome do mês.  
+- Clique na visita abre a modal de detalhes.
+
+<p align="center">
+  <img src="assets/readme/15-calendario-mes.png" alt="Calendário mensal em carrossel — Novembro 2026 com navegação Anterior/Próximo" width="920" />
+</p>
+
+### Modal de detalhes da visita (calendário)
+
+- Ao clicar em uma visita no calendário (semanas ou mês), abre modal somente leitura com os dados completos: cliente, localização, telefones, e-mail, data/hora, técnico, tipo de serviço, observações, pós-visita, recursos e status.
+
+<table>
+<tr>
+<td width="45%" valign="top">
+
+Útil para consultar o agendamento sem sair da visão de calendário.
+
+</td>
+<td width="55%" valign="top" align="center">
+
+<img src="assets/readme/16-visita-detalhe-modal.png" alt="Modal Detalhes da visita aberta a partir do calendário" width="420" />
+
+</td>
+</tr>
+</table>
 
 ### Catálogos do formulário
 
@@ -477,7 +529,7 @@ npm start
 │   ├── index.html
 │   └── js/
 │       ├── api/                         # http, auth, appointments, catalog, users
-│       ├── components/                  # app-shell, field, banner, ícones
+│       ├── components/                  # app-shell, field, banner, week-calendar, ícones
 │       └── pages/                       # schedule-form, weekly-dashboard, users-admin, profile
 ├── src/
 │   ├── core/
